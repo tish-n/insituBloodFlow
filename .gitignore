@@ -15,6 +15,7 @@ build/
 *.log
 dump.*
 *.swp
+tmp/
 # Prerequisites
 *.d
 

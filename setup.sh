@@ -142,4 +142,4 @@ cd $SINGCDIR/build
 make -j8
 cd ..
 echo "running test simulation for single cell example:"
-mpirun -n 4 cellFlow in.lmp4cell
+mpirun -n 4 cellFlow in.lmp4cell 1000 10
