@@ -16,6 +16,8 @@ build/
 dump.*
 *.swp
 tmp/
+personal.cmake
+rebuildandrun.sh
 # Prerequisites
 *.d
 

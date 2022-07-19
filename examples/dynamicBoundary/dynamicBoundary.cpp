@@ -180,20 +180,18 @@ void squarePoiseuilleSetup( MultiBlockLattice3D<T,DESCRIPTOR>& lattice,
     const plint nx = parameters.getNx();
     const plint ny = parameters.getNy();
     const plint nz = parameters.getNz();
-    Box3D top    = Box3D(0,    nx-1, ny-1, ny-1, 0, nz-1);
-    Box3D bottom = Box3D(0,    nx-1, 0,    0,    0, nz-1);
+    // y 
+    Box3D top    = Box3D(0,    nx-1, ny-1, ny-1, 0, nz-1); 
+    Box3D bottom = Box3D(0,    nx-1, 0,    0,    0, nz-1); 
     
+    // z
     Box3D inlet  = Box3D(0,    nx-1, 1,    ny-2, 0,    0);
     Box3D outlet = Box3D(0,    nx-1, 1,    ny-2, nz-1, nz-1);
     
+    //x
     Box3D left   = Box3D(0,    0,    1,    ny-2, 1, nz-2);
     Box3D right  = Box3D(nx-1, nx-1, 1,    ny-2, 1, nz-2);
-    
-    // Box3D left  = Box3D(0,    nx-1, 1,    ny-2, 0,    0); // ADDED BY NAZARIY 07/13
-    // Box3D right = Box3D(0,    nx-1, 1,    ny-2, nz-1, nz-1); // ADDED BY NAZARIY 07/13
-    
-    // Box3D inlet   = Box3D(0,    0,    1,    ny-2, 1, nz-2); // ADDED BY NAZARIY 07/13
-    // Box3D outlet  = Box3D(nx-1, nx-1, 1,    ny-2, 1, nz-2); // ADDED BY NAZARIY 07/13
+
     // shear flow top bottom surface
 
     // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, inlet, boundary::outflow );
@@ -222,14 +220,16 @@ void squarePoiseuilleSetup( MultiBlockLattice3D<T,DESCRIPTOR>& lattice,
     // setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocity<T>(parameters, NMAX));
     // setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocity<T>(parameters, NMAX));
     
+    // setBoundaryVelocity(lattice, inlet, Array<T,3>((T)0.0,(T)0.0,(T)0.05)); // .5 in z direction XXX added by Nazariy 7/19
+    // setBoundaryVelocity(lattice, outlet, Array<T,3>((T)0.0,(T)0.0,(T)0.05)); // .5 in z direction XXX added by Nazariy 7/19
     setBoundaryVelocity(lattice, top, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
     setBoundaryVelocity(lattice, bottom, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
     setBoundaryVelocity(lattice, left, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
     setBoundaryVelocity(lattice, right, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
     
 
-    //initializeAtEquilibrium(lattice, lattice.getBoundingBox(), SquarePoiseuilleDensityAndVelocity<T>(parameters, NMAX));
-    initializeAtEquilibrium(lattice, lattice.getBoundingBox(),(T)1.0, Array<T,3>(0.0,0.0,0.0));
+    // initializeAtEquilibrium(lattice, lattice.getBoundingBox(), SquarePoiseuilleDensityAndVelocity<T>(parameters, NMAX));
+    initializeAtEquilibrium(lattice, lattice.getBoundingBox(),(T)1.0, Array<T,3>(0.0,0.0,0.05));
 
     lattice.initialize();
 }
@@ -242,7 +242,7 @@ void squarePoiseuilleSetup( MultiBlockLattice3D<T,DESCRIPTOR>& lattice,
 template <typename T, template <typename U> class Descriptor>
 class DynamicBoundaryFunctional : public BoxProcessingFunctional3D_L<T, Descriptor> {
 public:
-    DynamicBoundaryFunctional(plint xc_, plint yc_, plint radius_, T rn_, plint it_) : xc(xc_), yc(yc_), radius(radius_), rn(rn_), it(it_) { }
+    DynamicBoundaryFunctional(plint xc_, plint yc_, plint radius_, T rn_, plint it_, plint zl_) : xc(xc_), yc(yc_), radius(radius_), rn(rn_), it(it_), zl(zl_) { }
     virtual void process(Box3D domain, BlockLattice3D<T, Descriptor> &lattice)
     {
         //BounceBackNodes<T> bbDomain(N, radius);
@@ -256,8 +256,8 @@ public:
                     T yscale = .5 * radius * sin(.0314*it);  // scaling factor for y (how close to center) dependent on iteration
                     // the representation is y = e ^ (-x^2), but the example is set up in Z direction so here 
                     // the x stands for domain in Z i.e. values from Z axis and y stands for value being subtracted from the radius
-                    int cntZ = (iZ+relativeOffset.z-(domain.z1-domain.z0))/xscale; // position of Z with resepect to center of Z        
-                    T modRad = yscale * exp(-cntZ*cntZ); // radius modification parameter
+                    int cntZ = (iZ+relativeOffset.z-(zl / 2))/xscale; // position of Z with resepect to center of Z        
+                    T modRad = yscale * exp(-cntZ*cntZ) + 1; // radius modification parameter
                     if (dist > (radius - modRad)*(radius - modRad)) {
                         lattice.attributeDynamics(iX, iY, iZ, new BounceBack<T, DESCRIPTOR>);
                     }
@@ -278,7 +278,7 @@ public:
     }
 
 private:
-    plint xc,yc,dr,it;
+    plint xc,yc,it,zl; // zl added by Nazariy 7/19
     plint radius;
     T rn; //XXXX added by Nazariy 7/12
 };
@@ -286,10 +286,10 @@ private:
 /// Automatic instantiation of the bounce-back nodes for the boundary,
 ///   using a data processor.
 void createDynamicBoundaryFromDataProcessor(
-    MultiBlockLattice3D<T, DESCRIPTOR> &lattice, plint xc, plint yc, plint radius, T rn, plint it)
+    MultiBlockLattice3D<T, DESCRIPTOR> &lattice, plint xc, plint yc, plint radius, T rn, plint it, plint zl)
 {
     applyProcessingFunctional(
-        new DynamicBoundaryFunctional<T, DESCRIPTOR>(xc, yc, radius, rn, it), lattice.getBoundingBox(),
+        new DynamicBoundaryFunctional<T, DESCRIPTOR>(xc, yc, radius, rn, it, zl), lattice.getBoundingBox(),
         lattice);
 }
 
@@ -333,6 +333,8 @@ int main(int argc, char* argv[]) {
         pcout << "1 : N\n";
         exit(1);
     }*/
+    T timeduration = T();
+    global::timer("mainloop").start();
 
     //const plint N = atoi(argv[1]);
     const plint N = 1;// atoi(argv[1]);
@@ -396,22 +398,22 @@ int main(int argc, char* argv[]) {
         Array<T,3> force(0,0.,1e-6);
         setExternalVector(lattice,lattice.getBoundingBox(),DESCRIPTOR<T>::ExternalField::forceBeginsAt,force);     
    
-    plint xc,yc,radius,dr, iterationCAS;
+    plint xc,yc,radius, iterationCAS, zLength;
 
     xc = 20; // X center 
     yc = 20; // Y center
     radius = 20; // radius
-    dr = 1; // change in radius
     T radiusNorm = radius/maxT; // double radius/max iterations
-    iterationCAS = 50; // iterations for collideAndStream in the loop 
+    iterationCAS = 10; // iterations for collideAndStream in the loop 
+    zLength = parameters.getNz(); // because domain.z0 gives local value pass this instead.  
     
-    createDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, 0); // added by NT 7/18/2022
-    for (plint iT=0;iT<4e3;iT++){
+    createDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, 0, zLength); // added by NT 7/18/2022
+    for (plint iT=0;iT<6e3;iT++){
         lattice.collideAndStream();
     }
  //           writeVTK(lattice, parameters, 4e3);
-    T timeduration = T();
-    global::timer("mainloop").start();
+    // T timeduration = T();
+    // global::timer("mainloop").start();
     for (plint iT=0; iT<=maxT; ++iT) {
     //for (plint iT=0; iT<2; ++iT) {
         if (iT%iSave ==0 && iT >0){
@@ -425,7 +427,7 @@ int main(int argc, char* argv[]) {
         // lammps to calculate force
         //wrapper.execCommand("run 1 pre no post no");
         // Clear and spread fluid force
-        createDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, iT);
+        createDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, iT, zLength);
         ////-----classical ibm coupling-------------//
         //spreadForce3D(lattice,wrapper);
         ////// Lattice Boltzmann iteration step.

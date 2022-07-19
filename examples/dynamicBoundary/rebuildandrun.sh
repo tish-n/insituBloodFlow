@@ -8,8 +8,8 @@ cd ..
 
 cd build
 
-make -j8 
+make -j20 
 
 cd ..
 
-mpirun -np 4 ./dynamicBoundary in.embolism 1000 10
+mpirun -np 20 ./dynamicBoundary in.embolism 1000 10
