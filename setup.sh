@@ -18,6 +18,50 @@ BUILDDIR="$PWD/build" # /insituBloodFlow/build
 SRCDIR="$PWD/src" # /insituBloodFlow/src
 BASEDIR=$PWD # /insituBloodFlow/
 BFDIR="$PWD/BloodFlow" # /insituBloodFlow/src 
+
+###########
+# palabos #
+###########
+
+cd $SRCDIR
+echo "downloading Palabos:"
+git clone https://gitlab.com/unigespc/palabos.git
+
+echo "changing directory to src/Palabos"
+cd palabos
+echo "checking out the compatible version"
+git checkout e498e8ad7f24fd7ff87313670db7873703c1fd3f
+echo "changing directory back to src"
+cd ..
+
+##########
+# LAMMPS #
+##########
+
+echo "downloading LAMMPS:"
+git clone https://github.com/lammps/lammps.git
+echo "changing directory to src/lammps"
+cd lammps
+echo "checking out the compatible version"
+git checkout e960674cea38515ae3749218c314a9e1a3c6c140
+cd ..
+echo "changing directory to insituBloodFlow/BloodFlow/rbc"
+cd $BFDIR/rbc
+echo "copying the necessary additions to lammps library:"
+cp bond_wlc_pow.* $SRCDIR/lammps/src
+cp angle_rbc.* $SRCDIR/lammps/src
+cp dihedral_bend.* $SRCDIR/lammps/src
+cp fix* $SRCDIR/lammps/src
+echo "changing directory to src/lammps/src"
+cd $SRCDIR/lammps/src
+echo "adding MOLECULE package to LAMMPS:"
+make yes-MOLECULE
+echo "adding MC package to LAMMPS:"
+make yes-MC
+echo "compiling LAMMPS as a library:"
+make mpi mode=lib -j 8
+echo "done compiling LAMMPS"
+
 ############
 # ParaView #
 ############
@@ -69,60 +113,29 @@ git clone https://github.com/SENSEI-insitu/SENSEI.git
 echo "changing to SENSEI directory"
 cd SENSEI
 echo "checking out a working version of SENSEI"
-git checkout v3.2.2
+git checkout develop
 
-PVIEWDIR="$INSTALLDIR/paraview/lib/cmake/paraview-5.10"
-ADIOSDIR="$INSTALLDIR/ADIOS2/lib/cmake/adios2"
-cmake -S  $SRCDIR/SENSEI -B $BUILDDIR/sensei -DCMAKE_INSTALL_PREFIX=$INSTALLDIR/sensei -DParaView_DIR=$PVIEWDIR -DENABLE_CATALYST=ON -DENABLE_VTK_IO=ON -DENABLE_LAMMPS=OFF -DENABLE_MANDELBROT=OFF -DENABLE_OSCILLATORS=OFF -DENABLE_ADIOS2=OFF -DADIOS2_DIR=$ADIOSDIR
+cp -rf $BFDIR/examples/singleCell4.0 $SRCDIR/SENSEI/miniapps
+cp $BFDIR/examples/singleCell4.0/SENSEICMakeLists/CMakeLists.txt $SRCDIR/SENSEI
+cp $BFDIR/examples/singleCell4.0/miniappCMakeLists/CMakeLists.txt $SRCDIR/SENSEI/miniapps
+
+cd $SRCDIR/SENSEI/miniapps
+
+mv singleCell4.0 singleCell
+
+cmake -S  $SRCDIR/SENSEI -B $BUILDDIR/sensei -DCMAKE_INSTALL_PREFIX=$INSTALLDIR/sensei -DParaView_DIR=$INSTALLDIR/paraview/lib/cmake/paraview-5.10 -DENABLE_PYTHON=ON -DENABLE_CATALYST_PYTHON=ON -DENABLE_CATALYST=ON -DENABLE_VTK_IO=ON -DENABLE_LAMMPS=OFF -DENABLE_MANDELBROT=OFF -DENABLE_SINGLECELL=ON -DENABLE_OSCILLATORS=ON -DENABLE_ADIOS2=ON -DADIOS2_DIR=$INSTALLDIR/ADIOS2/lib/cmake/adios2 
 echo "changing directory to build/SENSEI"
 cd $BUILDDIR/sensei
 echo "installing SENSEI"
-make -j8 
-make -j8 install
+make -j8
+
+# cmake -S  $SRCDIR/SENSEI -B $BUILDDIR/sensei -DCMAKE_INSTALL_PREFIX=$INSTALLDIR/sensei -DParaView_DIR=$PVIEWDIR -DENABLE_CATALYST=ON -DENABLE_VTK_IO=ON -DENABLE_LAMMPS=OFF -DENABLE_MANDELBROT=OFF -DENABLE_OSCILLATORS=OFF -DENABLE_ADIOS2=OFF -DADIOS2_DIR=$ADIOSDIR
+# echo "changing directory to build/SENSEI"
+# cd $BUILDDIR/sensei
+# echo "installing SENSEI"
+# make -j8 
+# make -j8 install
 echo "done installing SENSEI"
-
-###########
-# palabos #
-###########
-
-cd $SRCDIR
-echo "downloading Palabos:"
-git clone https://gitlab.com/unigespc/palabos.git
-
-echo "changing directory to src/Palabos"
-cd palabos
-echo "checking out the compatible version"
-git checkout e498e8ad7f24fd7ff87313670db7873703c1fd3f
-echo "changing directory back to src"
-cd ..
-
-##########
-# LAMMPS #
-##########
-
-echo "downloading LAMMPS:"
-git clone https://github.com/lammps/lammps.git
-echo "changing directory to src/lammps"
-cd lammps
-echo "checking out the compatible version"
-git checkout e960674cea38515ae3749218c314a9e1a3c6c140
-cd ..
-echo "changing directory to insituBloodFlow/BloodFlow/rbc"
-cd $BFDIR/rbc
-echo "copying the necessary additions to lammps library:"
-cp bond_wlc_pow.* $SRCDIR/lammps/src
-cp angle_rbc.* $SRCDIR/lammps/src
-cp dihedral_bend.* $SRCDIR/lammps/src
-cp fix* $SRCDIR/lammps/src
-echo "changing directory to src/lammps/src"
-cd $SRCDIR/lammps/src
-echo "adding MOLECULE package to LAMMPS:"
-make yes-MOLECULE
-echo "adding MC package to LAMMPS:"
-make yes-MC
-echo "compiling LAMMPS as a library:"
-make mpi mode=lib -j 8
-echo "done compiling LAMMPS"
 
 ############################
 # singleCell EXAMPLE setup #
