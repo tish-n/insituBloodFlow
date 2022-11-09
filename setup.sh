@@ -66,22 +66,22 @@ echo "done compiling LAMMPS"
 # ParaView #
 ############
 
-echo "\nchanging directory to SRC"
-cd $SRCDIR 
-echo "\ncurrent directory is:" $PWD
-echo "\ninstalling ParaView:"
-git clone --recursive https://gitlab.kitware.com/paraview/paraview.git
-cd paraview
-git checkout v5.10.1
-git submodule update --init --recursive
-echo "\nsetting ParaView install options:"
-cmake -B $BUILDDIR/paraview -S $SRCDIR/paraview -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$INSTALLDIR/paraview -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DPARAVIEW_USE_PYTHON=ON -DPARAVIEW_USE_MPI=ON -DPARAVIEW_USE_QT=OFF -DVTK_SMP_IMPLEMENTATION_TYPE=TBB -DPARAVIEW_BUILD_EDITION=CATALYST_RENDERING -DVTK_USE_X=OFF -DVTK_OPENGL_HAS_OSMESA=ON -DOSMESA_INCLUDE_DIR=/usr/include/GL/ -DOSMESA_LIBRARY=/usr/lib/x86_64-linux-gnu/libOSMesa.so
-echo "\nchanging directory to build/paraview"
-cd $BUILDDIR/paraview
-echo "installing ParaView"
-make -j8
-make -j8 install
-echo "\ndone installing ParaView"
+# echo "\nchanging directory to SRC"
+# cd $SRCDIR 
+# echo "\ncurrent directory is:" $PWD
+# echo "\ninstalling ParaView:"
+# git clone --recursive https://gitlab.kitware.com/paraview/paraview.git
+# cd paraview
+# git checkout v5.10.1
+# git submodule update --init --recursive
+# echo "\nsetting ParaView install options:"
+# cmake -B $BUILDDIR/paraview -S $SRCDIR/paraview -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$INSTALLDIR/paraview -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DPARAVIEW_USE_PYTHON=ON -DPARAVIEW_USE_MPI=ON -DPARAVIEW_USE_QT=OFF -DVTK_SMP_IMPLEMENTATION_TYPE=TBB -DPARAVIEW_BUILD_EDITION=CATALYST_RENDERING -DVTK_USE_X=OFF -DVTK_OPENGL_HAS_OSMESA=ON -DOSMESA_INCLUDE_DIR=/usr/include/GL/ -DOSMESA_LIBRARY=/usr/lib/x86_64-linux-gnu/libOSMesa.so
+# echo "\nchanging directory to build/paraview"
+# cd $BUILDDIR/paraview
+# echo "installing ParaView"
+# make -j8
+# make -j8 install
+# echo "\ndone installing ParaView"
 
 #########
 # ADIOS #
@@ -123,11 +123,19 @@ cd $SRCDIR/SENSEI/miniapps
 
 mv singleCell4.0 singleCell
 
-cmake -S  $SRCDIR/SENSEI -B $BUILDDIR/sensei -DCMAKE_INSTALL_PREFIX=$INSTALLDIR/sensei -DParaView_DIR=$INSTALLDIR/paraview/lib/cmake/paraview-5.10 -DENABLE_PYTHON=ON -DENABLE_CATALYST_PYTHON=ON -DENABLE_CATALYST=ON -DENABLE_VTK_IO=ON -DENABLE_LAMMPS=OFF -DENABLE_MANDELBROT=OFF -DENABLE_SINGLECELL=ON -DENABLE_OSCILLATORS=ON -DENABLE_ADIOS2=ON -DADIOS2_DIR=$INSTALLDIR/ADIOS2/lib/cmake/adios2 
+PVDIR="/home/tishn/myFork/insituBloodFlow/install/paraview/lib/cmake/paraview-5.10"
+
+cmake -S  $SRCDIR/SENSEI -B $BUILDDIR/sensei -DCMAKE_INSTALL_PREFIX=$INSTALLDIR/sensei -DParaView_DIR=$PVDIR -DENABLE_PYTHON=ON -DENABLE_CATALYST_PYTHON=ON -DENABLE_CATALYST=ON -DENABLE_VTK_IO=ON -DENABLE_LAMMPS=OFF -DENABLE_MANDELBROT=OFF -DENABLE_SINGLECELL=ON -DENABLE_OSCILLATORS=ON -DENABLE_ADIOS2=ON -DADIOS2_DIR=$INSTALLDIR/ADIOS2/lib/cmake/adios2 
 echo "changing directory to build/SENSEI"
 cd $BUILDDIR/sensei
 echo "installing SENSEI"
 make -j8
+
+# cmake -S  $SRCDIR/SENSEI -B $BUILDDIR/sensei -DCMAKE_INSTALL_PREFIX=$INSTALLDIR/sensei -DParaView_DIR=$INSTALLDIR/paraview/lib/cmake/paraview-5.10 -DENABLE_PYTHON=ON -DENABLE_CATALYST_PYTHON=ON -DENABLE_CATALYST=ON -DENABLE_VTK_IO=ON -DENABLE_LAMMPS=OFF -DENABLE_MANDELBROT=OFF -DENABLE_SINGLECELL=ON -DENABLE_OSCILLATORS=ON -DENABLE_ADIOS2=ON -DADIOS2_DIR=$INSTALLDIR/ADIOS2/lib/cmake/adios2 
+# echo "changing directory to build/SENSEI"
+# cd $BUILDDIR/sensei
+# echo "installing SENSEI"
+# make -j8
 
 # cmake -S  $SRCDIR/SENSEI -B $BUILDDIR/sensei -DCMAKE_INSTALL_PREFIX=$INSTALLDIR/sensei -DParaView_DIR=$PVIEWDIR -DENABLE_CATALYST=ON -DENABLE_VTK_IO=ON -DENABLE_LAMMPS=OFF -DENABLE_MANDELBROT=OFF -DENABLE_OSCILLATORS=OFF -DENABLE_ADIOS2=OFF -DADIOS2_DIR=$ADIOSDIR
 # echo "changing directory to build/SENSEI"
