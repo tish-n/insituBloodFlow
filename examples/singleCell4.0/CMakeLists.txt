@@ -2,12 +2,12 @@ cmake_minimum_required(VERSION 2.8.12)
 project(cellFlow)
 enable_language(CXX)
 
-set(PALABOS_ROOT "/home/tishn/myFork/insituBloodFlow/src/palabos/" CACHE STRING "")
-set(BLOODFLOW_ROOT "/home/tishn/myFork/insituBloodFlow/BloodFlow/" CACHE STRING "")
-set(LAMMPS_DIR "/home/tishn/myFork/insituBloodFlow/src/lammps/" CACHE STRING "")
+set(PALABOS_ROOT "../../../palabos/" CACHE STRING "")
+set(BLOODFLOW_ROOT "../../../../BloodFlow/" CACHE STRING "")
+set(LAMMPS_DIR "../../../lammps/" CACHE STRING "")
 set(LAMMPS_LIB "${LAMMPS_DIR}/src")
-set(SENSEI_DIR "/home/tishn/myFork/insituBloodFlow/install/sensei/lib/cmake/" CACHE PATH "Path to SENSEI root directory")
-set(SENSEI_INCLUDE "/home/tishn/myFork/insituBloodFlow/install/sensei/include/" CACHE PATH "")
+# set(SENSEI_DIR "/home/tishn/myFork/insituBloodFlow/install/sensei/lib/cmake/" CACHE PATH "Path to SENSEI root directory")
+# set(SENSEI_INCLUDE "/home/tishn/myFork/insituBloodFlow/install/sensei/include/" CACHE PATH "")
 
 # include_directories(${SENSEI_DIR}/include)
 
@@ -85,7 +85,7 @@ if(WIN32 OR CYGWIN)
 endif()
 
 set(sources cellFlow.cpp)
-include_directories(${SENSEI_INCLUDE})
+# include_directories(${SENSEI_INCLUDE})
 # set(libs sMPI sDIY sOPTS thread)
 
 include_directories("${PALABOS_ROOT}/src")

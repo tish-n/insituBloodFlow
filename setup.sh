@@ -27,12 +27,12 @@ cd $SRCDIR
 echo "downloading Palabos:"
 git clone https://gitlab.com/unigespc/palabos.git
 
-echo "changing directory to src/Palabos"
-cd palabos
-echo "checking out the compatible version"
-git checkout e498e8ad7f24fd7ff87313670db7873703c1fd3f
-echo "changing directory back to src"
-cd ..
+# echo "changing directory to src/Palabos"
+# cd palabos
+# echo "checking out the compatible version"
+# git checkout e498e8ad7f24fd7ff87313670db7873703c1fd3f
+# echo "changing directory back to src"
+# cd ..
 
 ##########
 # LAMMPS #
@@ -40,12 +40,12 @@ cd ..
 
 echo "downloading LAMMPS:"
 git clone https://github.com/lammps/lammps.git
-echo "changing directory to src/lammps"
-cd lammps
-echo "checking out the compatible version"
-git checkout e960674cea38515ae3749218c314a9e1a3c6c140
-cd ..
-echo "changing directory to insituBloodFlow/BloodFlow/rbc"
+# echo "changing directory to src/lammps"
+# cd lammps
+# echo "checking out the compatible version"
+# git checkout e960674cea38515ae3749218c314a9e1a3c6c140
+# cd ..
+# echo "changing directory to insituBloodFlow/BloodFlow/rbc"
 cd $BFDIR/rbc
 echo "copying the necessary additions to lammps library:"
 cp bond_wlc_pow.* $SRCDIR/lammps/src
@@ -141,18 +141,18 @@ echo "done installing SENSEI"
 # singleCell EXAMPLE setup #
 ############################
 
-echo "changing directory to BloodFlow/examples/singleCell"
-SINGCDIR="$BFDIR/examples/singleCell"
-cd $SINGCDIR
-echo "making build directory:"
-mkdir build
-echo "changing directory to base"
-cd $BASEDIR 
-cmake -S $SINGCDIR -B $SINGCDIR/build -DSENSEI_DIR=$INSTALLDIR/sensei/lib/cmake -DPALABOS_ROOT=$SRCDIR/palabos -DBLOODFLOW_ROOT=$BFDIR -DLAMMPS_DIR=$SRCDIR/lammps -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_STANDARD=11
+# echo "changing directory to BloodFlow/examples/singleCell"
+# SINGCDIR="$BFDIR/examples/singleCell"
+# cd $SINGCDIR
+# echo "making build directory:"
+# mkdir build
+# echo "changing directory to base"
+# cd $BASEDIR 
+# cmake -S $SINGCDIR -B $SINGCDIR/build -DSENSEI_DIR=$INSTALLDIR/sensei/lib/cmake -DPALABOS_ROOT=$SRCDIR/palabos -DBLOODFLOW_ROOT=$BFDIR -DLAMMPS_DIR=$SRCDIR/lammps -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_STANDARD=11
 
 
-cd $SINGCDIR/build
-make -j8
-cd ..
-echo "running test simulation for single cell example:"
-mpirun -n 4 cellFlow in.lmp4cell 1000 10
+# cd $SINGCDIR/build
+# make -j8
+# cd ..
+# echo "running test simulation for single cell example:"
+# mpirun -n 4 cellFlow in.lmp4cell 1000 10
