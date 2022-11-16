@@ -369,9 +369,7 @@ void VtkPalabos(MultiBlockLattice3D<T, DESCRIPTOR>& lattice,
 
 
 int main(int argc, char* argv[]) {
-    cout<<"before plbinit -    --- - - - - - -- - - - -- - -"<< endl;
     plbInit(&argc, &argv);
-    cout<<"after plbINIT -    --- - - - - - -- - - - -- - -"<< endl;
     global::directories().setOutputDir("./tmp/");
     
 /*
@@ -550,7 +548,6 @@ int main(int argc, char* argv[]) {
                         nx, ny, nz, domain, envelopeWidth);
         sensei::DataAdaptor *daOut = nullptr;
         Bridge::Analyze(time++, &daOut);
-        cout << " ---------------------- iSave part --------------------------- " << endl;
         }
 
         // Clear and spread fluid force
