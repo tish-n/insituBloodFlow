@@ -28,6 +28,7 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
+#include <stdlib.h>
 #include <fstream>
 
 //#include "opts.h"
@@ -390,12 +391,11 @@ int main(int argc, char* argv[]) {
     const int nz = 80;
     //using namespace opts;
 
-    pcout<<"before configFile"<< endl;
-    std::string config_file("/home/tishn/myFork/singleCell4.0/cellFlow.xml");//Configuration file to tell SENSEI what to do with data.
-    // char * config_file = argv[4];
-    // std::string  config_file = argv[4];
-    pcout<<"before BRIDGE INITIALIZE"<< endl;
-    Bridge::Initialize(global::mpi().getGlobalCommunicator(), config_file); // replaced with MPI_COMM_WORLD 
+    char* config_file = argv[4];
+    string cfg_file(config_file);
+    // std::cout << "input file is " << cfg_file << std::endl;
+    Bridge::Initialize(global::mpi().getGlobalCommunicator(), cfg_file); // replaced with MPI_COMM_WORLD 
+    
     // Bridge::Initialize(MPI_COMM_WORLD, config_file);
     /*Options ops(argc, argv);
     ops
