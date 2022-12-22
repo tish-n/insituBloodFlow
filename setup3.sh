@@ -18,7 +18,7 @@ BUILDDIR="$PWD/build" # /insituBloodFlow/build
 SRCDIR="$PWD/src" # /insituBloodFlow/src
 BASEDIR=$PWD # /insituBloodFlow/
 BFDIR="$PWD/BloodFlow" # /insituBloodFlow/src 
-SINGCDIR="$BFDIR/examples/singleCell4.0"
+SINGCDIR="$BFDIR/examples/bidirectionalSingleCell"
 
 
 ##########
@@ -44,13 +44,13 @@ rm -rf cellFlow
 cd $SINGCDIR
 rm cellFlow
 
-cp -rf $BFDIR/examples/singleCell4.0 $SRCDIR/SENSEI/miniapps
-cp $BFDIR/examples/singleCell4.0/SENSEICMakeLists/CMakeLists.txt $SRCDIR/SENSEI
-cp $BFDIR/examples/singleCell4.0/miniappCMakeLists/CMakeLists.txt $SRCDIR/SENSEI/miniapps
+cp -rf $BFDIR/examples/bidirectionalSingleCell $SRCDIR/SENSEI/miniapps
+cp $BFDIR/examples/bidirectionalSingleCell/SENSEICMakeLists/CMakeLists.txt $SRCDIR/SENSEI
+cp $BFDIR/examples/bidirectionalSingleCell/miniappCMakeLists/CMakeLists.txt $SRCDIR/SENSEI/miniapps
 
 cd $SRCDIR/SENSEI/miniapps
 
-mv singleCell4.0 singleCell
+mv bidirectionalSingleCell singleCell
 
 cp $BUILDDIR/sensei/miniapps/cellFlow
 
@@ -71,7 +71,7 @@ echo "done installing SENSEI"
 ############################
 
 echo "changing directory to BloodFlow/examples/singleCell"
-SINGCDIR="$BFDIR/examples/singleCell4.0"
+# SINGCDIR="$BFDIR/examples/bidirectionalSingleCell"
 cp $BUILDDIR/sensei/miniapps/cellFlow $SINGCDIR
 cd $SINGCDIR
 mpirun -n 4 cellFlow in.lmp4cell 1000 10 $PWD/cellFlow.xml
