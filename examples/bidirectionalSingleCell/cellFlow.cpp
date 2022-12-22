@@ -261,7 +261,7 @@ public:
         // clotLoc - location of clot 
         //BounceBackNodes<T> bbDomain(N, radius);
         // limiting the iteration of Z for greater efficiency, and unlocking the Z location of clot
-        int zrange = 10; 
+        int zrange = 10; // NEEDS FINISHING - Nazariy 12/21/2022
         int zmin = domain.z0 + clotLoc - zrange/2; //default zmin
         int zmax = domain.z0 + clotLoc + zrange/2; //default zmax 
         if(clotLoc < (domain.z0 + zrange/2)){ // if clot location is before the start of the domain + center of specified range 
@@ -285,7 +285,6 @@ public:
                              (iX + relativeOffset.x - xc)*(iX + relativeOffset.x - xc); //XXXX change later - Nazariy
                     T xscale = .5 * rn * it; // scaling factor for x (how wide) replace with a slider later.
                     T yscale = .5 * radius * sin(.0314*it);  // scaling factor for y (how close to center) dependent on iteration
-                    
                     if(yscale < 0){
                         T yscale = -.5 * radius * sin(.0314*it);
                     }
@@ -331,7 +330,7 @@ private:
 void createDynamicBoundaryFromDataProcessor(
     MultiBlockLattice3D<T, DESCRIPTOR> &lattice, plint xc, plint yc, plint radius, T rn, plint zl, plint clotLoc) // removed 
 {
-    plint it = 0;
+    plint it = 50; // change back to 0 when finished debugging the bidirectional stuff and lammps domain stuff. 
     applyProcessingFunctional(
         new DynamicBoundaryFunctional<T, DESCRIPTOR>(xc, yc, radius, rn, it, zl, clotLoc), lattice.getBoundingBox(),
         lattice);

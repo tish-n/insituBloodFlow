@@ -54,8 +54,8 @@ void SetData(double **x, long ntimestep, int nghost,
   vorticityDoubleArray->SetNumberOfComponents(3);
   vorticityDoubleArray->SetNumberOfTuples((nlx) * (nly) * (nlz));
 
-   velocityNormDoubleArray->SetNumberOfComponents(1);
-   velocityNormDoubleArray->SetNumberOfTuples((nlx) * (nly) * (nlz));
+  velocityNormDoubleArray->SetNumberOfComponents(1);
+  velocityNormDoubleArray->SetNumberOfTuples((nlx) * (nly) * (nlz));
 
    //plint EW = envelopeWidth;
 
