@@ -19,10 +19,10 @@
   <result steerable_source_type="parameters" mesh="" />
   </analysis> -->
 
-<!-- steerable_source_type name has to match name <SourceProxy class="vtkSteeringDataGenerator" name="clots">   -->
+   <!-- steerable_source_type name has to match name <SourceProxy class="vtkSteeringDataGenerator" name="clots">   -->
 
   <analysis type="catalyst" pipeline="pythonscript"
-        filename="catalystInitializer.py" enabled="1"
+        filename="catalystInitializer1.py" enabled="1"
         plugin_xml="bidirectional_proxies.xml">
     <result steerable_source_type="clots" mesh="fluid" /> 
     <!-- <result producer="fluid.pvd" steerable_source_type="clots" mesh="fluid" />  -->

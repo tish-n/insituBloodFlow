@@ -7,6 +7,8 @@ from paraview.simple import *
 #### disable automatic camera reset on 'Show'
 paraview.simple._DisableFirstRenderCameraReset()
 
+print("executing catalyst_pipeline")
+steerable_parameters = CreateSteerableParameters("clots")
 # ----------------------------------------------------------------
 # setup views used in the visualization
 # ----------------------------------------------------------------
@@ -51,7 +53,7 @@ SetActiveView(renderView1)
 # create a new 'PVD Reader'
 fluidpvd = PVDReader(registrationName='fluid')#, FileName='/home/tishn/test/insituBloodFlow/BloodFlow/examples/bidirectionalSingleCell/vtk_output/fluid.pvd')
 fluidpvd.CellArrays = ['vtkTestType']
-fluidpvd.PointArrays = ['velocity', 'vorticity', 'velocityNorm']
+fluidpvd.PointArrays = ['velocity', 'vorticity', 'velocityNorm', 'coords']
 
 # create a new 'PVD Reader'
 cellspvd = PVDReader(registrationName='cells')#, FileName='/home/tishn/test/insituBloodFlow/BloodFlow/examples/bidirectionalSingleCell/vtk_output/cells.pvd')
@@ -178,7 +180,7 @@ SetActiveSource(fluidpvd) # 12/21/2022 commented out
 # Catalyst options
 from paraview import catalyst  # 12/21/2022 commented out
 options = catalyst.Options()   # 12/21/2022 commented out
-options.ExtractsOutputDirectory = '/home/tishn/myFork/singleCell4.0/datasets' # 12/21/2022 commented out
+# options.ExtractsOutputDirectory = '/home/tishn/myFork/singleCell4.0/datasets' # 12/21/2022 commented out
 options.GlobalTrigger = 'TimeStep'  # 12/21/2022 commented out
 options.EnableCatalystLive = 1  # 12/21/2022 commented out
 options.CatalystLiveTrigger = 'TimeStep'  # 12/21/2022 commented out

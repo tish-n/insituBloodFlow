@@ -188,7 +188,10 @@ namespace senseiLP
     svtkDoubleArray *pb_velocityDoubleArray;
     svtkDoubleArray *pb_vorticityDoubleArray; 
     svtkDoubleArray *pb_velocityNormDoubleArray;
-  // --------------------------------------
+
+  // ---------internals for bidirectional_proxies script. 
+    svtkDoubleArray *pb_center;
+
     long NumBlocks;
     int nlocal, nghost, nanglelist;
     double **x;
@@ -266,7 +269,7 @@ namespace senseiLP
   void LPDataAdaptor::AddPalabosData(svtkDoubleArray *velocityDoubleArray,
                 svtkDoubleArray *vorticityDoubleArray,
                 svtkDoubleArray *velocityNormDoubleArray,
-                        int nx, int ny, int nz, Box3D domainBox, plint envelopeWidth) 
+                        int nx, int ny, int nz, Box3D domainBox, plint envelopeWidth, svtkDoubleArray *center) 
   {
     DInternals& internals = (*this->Internals);
 
@@ -282,6 +285,13 @@ namespace senseiLP
     internals.pb_nz = nz;
     internals.domainBox = domainBox;//XXX domainBox 2/23/22
     internals.envelopeWidth = envelopeWidth;
+    // --------- setting up internals for bidirectional:
+    internals.pb_center = center;
+    // Array<double,3> test1(0.,0.,0.);
+    // double* test1 = center->GetTuple3(0);
+    // cout <<" -----------------------CENTER in AddPalabosData " << * (center->GetTuple3(0)[1])  << " " << * (center->GetTuple3(0,1)) << " " << * (center->GetTuple3(0,1)) << endl;
+    // cout <<" -----------------------CENTER in AddPalabosData " << test1[0] << " " << test1[1]<< " " << test1[2]<< endl;
+    internals.pb_center->SetName("coords");
   }   
   //----------------------------------------------------------------------
   int LPDataAdaptor::GetNumberOfMeshes(unsigned int &numMeshes)
@@ -356,11 +366,11 @@ namespace senseiLP
       metadata->NumBlocks = nRanks;
       metadata->NumBlocksLocal = {1};
       metadata->NumGhostCells = this->Internals->envelopeWidth;  
-      metadata->NumArrays=3;
-      metadata->ArrayName = {"velocity","vorticity","velocityNorm"};
-      metadata->ArrayComponents = {3, 3, 1}; 
-      metadata->ArrayType = {SVTK_DOUBLE, SVTK_DOUBLE, SVTK_DOUBLE};
-      metadata->ArrayCentering = {svtkDataObject::POINT, svtkDataObject::POINT, svtkDataObject::POINT};
+      metadata->NumArrays=4;
+      metadata->ArrayName = {"velocity","vorticity","velocityNorm","coords"};
+      metadata->ArrayComponents = {3, 3, 1, 3}; 
+      metadata->ArrayType = {SVTK_DOUBLE, SVTK_DOUBLE, SVTK_DOUBLE, SVTK_DOUBLE};
+      metadata->ArrayCentering = {svtkDataObject::POINT, svtkDataObject::POINT, svtkDataObject::POINT, svtkDataObject::POINT};
       metadata->StaticMesh = 1; 
 
       if (metadata->Flags.BlockDecompSet())
@@ -421,12 +431,12 @@ namespace senseiLP
           Triangle->GetPointIds()->SetId(2, internals.anglelist[i][2]);
           Triangles->InsertNextCell(Triangle);
 	  
-	  Triangle->Delete();
+	        Triangle->Delete();
         }
         pd->SetPoints(pts);
         pd->SetPolys(Triangles);
-	pts->Delete();
-	Triangles->Delete();
+	      pts->Delete();
+	      Triangles->Delete();
       }
       
       pd->SetVerts( internals.vertices ); //XXX Does this do anything? vertices gets created in DInternals but doesn't get set as anything
@@ -468,6 +478,9 @@ namespace senseiLP
       FluidImageData->GetPointData()->AddArray(internals.pb_velocityNormDoubleArray);
       internals.pb_velocityNormDoubleArray->SetName("velocityNorm");
       */
+
+      // FluidImageData->GetPointData()->AddArray(internals.pb_center);
+      // internals.pb_center->SetName("coords");
 
       mbfluid->SetNumberOfBlocks(size);
       mbfluid->SetBlock(rank,FluidImageData);
@@ -568,6 +581,10 @@ namespace senseiLP
       else if(arrayName == "velocityNorm")
       {
         FluidImageData->GetPointData()->AddArray(internals.pb_velocityNormDoubleArray);
+      }
+      else if(arrayName == "coords")
+      {
+        FluidImageData->GetPointData()->AddArray(internals.pb_center); // set to a better data type 
       }
       else
       {

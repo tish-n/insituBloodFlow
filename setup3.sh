@@ -52,7 +52,7 @@ cd $SRCDIR/SENSEI/miniapps
 
 mv bidirectionalSingleCell singleCell
 
-cp $BUILDDIR/sensei/miniapps/cellFlow
+# cp $BUILDDIR/sensei/miniapps/cellFlow $SINGCDIR
 
 PVDIR="/home/tishn/myFork/insituBloodFlow/install/paraview/lib/cmake/paraview-5.10" #modify this.
 # PVDIR="$INSTALLDIR/paraview/lib/cmake/paraview-5.10"

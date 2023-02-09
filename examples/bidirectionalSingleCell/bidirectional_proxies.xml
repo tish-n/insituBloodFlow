@@ -3,8 +3,8 @@
     <!-- ==================================================================== -->
     <Proxy name="clotPrototype" label="clot" >
       <DoubleVectorProperty name="Center"
-                            number_of_elements="1"
-                            default_values="40">
+                            number_of_elements="3"
+                            default_values="0 0 40">
         <DoubleRangeDomain  name="range" />
         <Documentation>
           Specify center for the clot.
@@ -40,10 +40,10 @@
                             use_index="1"
                             clean_command="Clear"
                             initial_string="coords"
-                            number_of_elements_per_command="1"
+                            number_of_elements_per_command="3"
                             repeat_command="1"
-                            number_of_elements="1"
-                            default_values="1">
+                            number_of_elements="3"
+                            default_values="1 1 1">
         <Documentation>
           Specify center for the clot.
         </Documentation>

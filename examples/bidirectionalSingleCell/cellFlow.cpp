@@ -45,16 +45,27 @@
 //#include "nearestTwoNeighborLattices3D.h"
 // #include "senseiConfig.h"
 //#ifdef ENABLE_SENSEI
+// #include <svtkPolyData.h>
+#include <svtkMultiBlockDataSet.h>
 #include <svtkVersion.h>
 #include <svtkImageData.h>
 #include <vtkXMLImageDataWriter.h>
 // #include <vtkUnsignedCharArray.h>
 #include <svtkUnsignedCharArray.h>
 #include <svtkPointData.h>
+// #include <svtkImagetData.h>
 #include <svtkDoubleArray.h>
 #include <svtkSmartPointer.h>
 #include <svtkUniformGrid.h> 
 #include "Bridge.h"
+
+#include "LPdataAdaptor.h"
+#include <DataAdaptor.h>
+
+
+// #include <SVTKDataAdaptor.h>
+#include <MeshMetadata.h>
+#include <MeshMetadataMap.h>
 //#endif
 
 using namespace plb;
@@ -452,7 +463,7 @@ void VtkPalabos(MultiBlockLattice3D<T, DESCRIPTOR>& lattice,
 	imageData->GetPointData()->AddArray(VorticityValues);
         VorticityValues->SetName("Vorticity");
 	
-    imageData->GetPointData()->AddArray(VelocityNormValues); // ass these lines to add Array pb_vel
+    imageData->GetPointData()->AddArray(VelocityNormValues); // add these lines to add Array pb_vel
         VelocityNormValues->SetName("Velocity Norm");
 
 //	vtkSmartPointer<vtkXMLImageDataWriter> writer =
@@ -619,16 +630,18 @@ int main(int argc, char* argv[]) {
     double **x;
    
     int **anglelist;
+    // Array<double,3> center(0.,0.,0.);
+    //  std::vector<std::double> center;
 
     plint myrank = global::mpi().getRank();
     MultiTensorField3D<T,3> vel(lattice);
     MultiTensorField3D<double, 3> vort(lattice);
     MultiScalarField3D<double> velNorm(lattice);
+    pcout<<" -------------------------------------------------------------------------------------------------- before time loop starts ";
     //TensorField3D<T,3> velocityArray = vel.getComponent(myrank);
     //TensorField3D<T,3> vorticityArray = vort.getComponent(myrank);
     //ScalarField3D<T> velocityNormArray = velNorm.getComponent(myrank);
     for (plint iT=0; iT<maxT; ++iT) {
-        
         // lammps to calculate force
         wrapper.execCommand("run 1 pre no post no");
 
@@ -661,7 +674,100 @@ int main(int argc, char* argv[]) {
 			            velocityArray, vorticityArray, velocityNormArray, 
                         nx, ny, nz, domain, envelopeWidth);
         sensei::DataAdaptor *daOut = nullptr;
+        // pcout<<" BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB "<< daOut <<endl;
         Bridge::Analyze(time++, &daOut);
+
+        pcout<<" -------------------------------------------------------------------------------------------------- "<< daOut <<endl;
+
+        if (daOut)
+        {
+        //   svtkDataObject* mesh;
+        //   auto center = daOut->GetPointData()->GetArray("coords");
+        //   svtkDataObject* mesh;
+        //   daOut->GetMesh("fluid", true, mesh);
+        //   auto pd = svtkPolyData::SafeDownCast(svtkMultiBlockDataSet::SafeDownCast(mesh)->GetBlock(0));
+
+        //   auto center->daOut->FluidImageData->GetArray("coords");
+        //   auto center = pd->GetPointData()->GetArray("coords");
+        // sensei::MeshMetadataMap mdMap;
+        // mdMap.Initialize(daOut)
+        // sensei::MeshMetadataPtr mmd;
+        // mdMap.GetMeshMetadata("fluid", mmd)
+        // svtkDataObject* mesh;
+        // daOut->GetMesh("fluid",true,mesh)
+        // auto id = svtkImageData::SafeDownCast(svtkMultiBlockDataSet::SafeDownCast(mesh)->GetBlock(0));
+        // auto center = id->GetPointData()->GetArray("");
+
+
+        // // **************************************************************************
+        // int myrank;
+        // MPI_Comm_rank(GetCommunicator(), &myrank);
+        double dcenterptr;
+        // std::vector<double> dcenter;
+
+        int rank;
+        MPI_Comm_rank(daOut->GetCommunicator(), &rank);
+
+        sensei::MeshMetadataMap mdMap;
+        mdMap.Initialize(daOut);
+        cout <<" -----------------------daOut pointer " << daOut << endl;
+        // get the mesh metadata object
+        sensei::MeshMetadataPtr mmd;
+        mdMap.GetMeshMetadata("fluid", mmd);
+        if (mmd->NumBlocksLocal == std::vector<int>{ 1 })
+        {
+        svtkDataObject* mesh;
+        cout <<" -----------------------mesh " << mesh << endl;
+        cout <<" -----------------------mesh metadata pointer " << mmd << endl;
+        daOut->GetMesh("fluid", false, mesh);
+        cout <<" -----------------------mesh after GetMesh() " << mesh << endl;
+        daOut->AddArrays(mesh, "fluid", svtkDataObject::POINT, mmd->ArrayName);
+        // daOut->AddArray(mesh, "fluid", svtkDataObject::POINT, "velocity");
+        // string* test1 = mmd->ArrayName;
+        // cout <<" -----------------------Array Names in meshmetadata:" << test1[0] << " " << test1[1]<< " " << test1[2]<< " " << test1[3]<<endl;
+        cout <<" -----------------------mesh after GetMesh() " << mesh << endl;
+        svtkMultiBlockDataSet *mbfluid = dynamic_cast<svtkMultiBlockDataSet*>(mesh); 
+        cout <<" -----------------------MultiBlockDataSet pointer " << mbfluid << endl;
+        // svtkImageData* id = svtkImageData::SafeDownCast(svtkMultiBlockDataSet::SafeDownCast(mesh)->GetBlock(0));
+        svtkImageData* id = (svtkImageData*)mbfluid->GetBlock(0);
+        cout <<" -----------------------FluidImageData pointer " << id << endl;
+        svtkDataArray* center = id->GetPointData()->GetArray("coords");
+        // svtkDataArray* velocity = id->GetPointData()->GetArray("velocity");
+        // double* test1 = center->GetTuple3(0);
+        // cout <<" -----------------------CENTER in cellFlow.cpp " << test1[0] << " " << test1[1]<< " " << test1[2]<< endl;
+
+
+        // svtkDataArray* center = id->GetPointData()->GetArray("coords");
+        // cout <<" ----------------------- center pointer " << center << endl;
+        // double* test1 = center->GetTuple3(0);
+        // cout <<" -----------------------CENTER in cellFlow.cpp " << test1[0] << " " << test1[1]<< " " << test1[2]<< endl;
+
+        // cout <<" --------------------- " << center << endl;
+        // cout <<" --------------------- " << center << endl;
+        // double dcenter;
+        // for (size_t cc=0, numPts = id->GetNumberOfPoints(); cc < numPts; ++cc)
+        // {
+        // double pt[3];
+        // id->GetPoint(0, pt);
+        // // float x = static_cast<float>(pt[0]);
+        // // float y = static_cast<float>(pt[1]);
+        // // float z = static_cast<float>(pt[2]);
+        // dcenterptr = static_cast<double>(center->GetTuple1(0));
+        // // dcenter = dcenterptr;        
+        // pcout<<" --------center pointer " << dcenterptr << endl;
+        // }
+        mesh->Delete();
+        }
+
+        // pcout<<" -------------------------------------------------------------------------------------------------- " << dcenterptr << endl;
+        // pcout<<" -------------------------------------------------------------------------------------------------- " << dcenterptr << endl;
+
+        daOut->ReleaseData();
+        daOut->Delete();
+
+        }
+        // daOut->ReleaseData();
+        // daOut->Delete();
         }
 
         // Clear and spread fluid force
