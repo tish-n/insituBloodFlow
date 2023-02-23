@@ -359,6 +359,7 @@ namespace senseiLP
     else if(id == 1) // id == 1 is fluid
     {
       //cout << "GetMeshMetaData Fluid Test" << endl;
+      // metadata->GlobalView = 1;
       metadata->MeshName = "fluid"; 
       metadata->MeshType = SVTK_MULTIBLOCK_DATA_SET;
       metadata->BlockType= SVTK_IMAGE_DATA; 
@@ -366,7 +367,7 @@ namespace senseiLP
       metadata->NumBlocks = nRanks;
       metadata->NumBlocksLocal = {1};
       metadata->NumGhostCells = this->Internals->envelopeWidth;  
-      metadata->NumArrays=4;
+      metadata->NumArrays = 4;
       metadata->ArrayName = {"velocity","vorticity","velocityNorm","coords"};
       metadata->ArrayComponents = {3, 3, 1, 3}; 
       metadata->ArrayType = {SVTK_DOUBLE, SVTK_DOUBLE, SVTK_DOUBLE, SVTK_DOUBLE};
@@ -394,6 +395,23 @@ namespace senseiLP
       metadata->BlockNumPoints.push_back((nlx) * (nly) * (nlz)); //(nlx * nly * nlz * 3); //XXX Changed 2/23/22
       metadata->BlockCellArraySize.push_back(0); 
     }
+    // if (id == 2)
+    // {
+    //   metadata->GlobalView = 1;
+    //   metadata->MeshName = "CLOTS";
+    //   metadata->MeshType = SVTK_MULTIBLOCK_DATA_SET;
+    //   metadata->BlockType = SVTK_POLY_DATA;
+    //   metadata->CoordinateType = SVTK_DOUBLE;
+    //   metadata->NumBlocks = 1;
+    //   metadata->NumBlocksLocal = {(rank ? 0 : 1)};
+    //   metadata->NumGhostCells = 0;
+    //   metadata->NumArrays = 1;
+    //   metadata->ArrayName = {"coords"};
+    //   metadata->ArrayCentering = {svtkDataObject::POINT};
+    //   metadata->ArrayComponents = {1};
+    //   metadata->ArrayType = {SVTK_DOUBLE};
+    //   metadata->StaticMesh = 1; 
+    // }
     else
     {
       SENSEI_ERROR("MeshMetaData Error: id value does not exist")
@@ -408,6 +426,39 @@ namespace senseiLP
     MPI_Comm_size(this->GetCommunicator(), &size);
     mesh = nullptr;
     //cout << "Calling GetMesh" << endl;
+    // if (meshName == "CLOTS")
+    // {
+    // DInternals& internals = (*this->Internals);
+
+    // svtkPolyData *pd = svtkPolyData::New();
+    // svtkMultiBlockDataSet *mb = svtkMultiBlockDataSet::New();
+    // // the oscillators only send on rank 0
+    // mb->SetNumberOfBlocks(1);
+
+    // int rank = 0;
+    // MPI_Comm_rank(this->GetCommunicator(), &rank);
+    // if (rank == 0)
+    //   {
+    //   size_t numPts = 1;
+
+    //   svtkPolyData *pd = svtkPolyData::New();
+
+    //   svtkPoints *pts = svtkPoints::New();
+    //   pts->SetDataTypeToFloat();
+    //   pts->SetNumberOfPoints(numPts);
+    //   for (size_t cc=0; cc < numPts; ++cc)
+    //   {
+    //     const Oscillator &o = this->Internals->Oscillators[cc];
+    //     pts->SetPoint(cc, o.center_x, o.center_y, o.center_z);
+    //   }
+    //   pd->SetPoints(pts);
+    //   pts->Delete();
+
+    //   mb->SetBlock(0, pd);
+    //   pd->Delete();
+    //   }
+    // }
+
     if(meshName == "cells")
     {  
       DInternals& internals = (*this->Internals);

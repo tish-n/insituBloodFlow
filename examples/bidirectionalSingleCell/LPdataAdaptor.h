@@ -7,6 +7,9 @@
 #include <svtkImageData.h>
 // #include <vtkUnsignedCharArray.h>
 #include <svtkUnsignedCharArray.h>
+
+// class svtkDataArray;
+
 using namespace plb; 
 namespace senseiLP 
 {

@@ -73,5 +73,5 @@ echo "done installing SENSEI"
 echo "changing directory to BloodFlow/examples/singleCell"
 # SINGCDIR="$BFDIR/examples/bidirectionalSingleCell"
 cp $BUILDDIR/sensei/miniapps/cellFlow $SINGCDIR
-cd $SINGCDIR
-mpirun -n 4 cellFlow in.lmp4cell 1000 10 $PWD/cellFlow.xml
+# cd $SINGCDIR
+# mpirun -n 4 cellFlow in.lmp4cell 1000 10 $PWD/cellFlow.xml

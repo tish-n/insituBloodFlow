@@ -22,9 +22,10 @@
       <IntVectorProperty name="PartitionType"
                          command="SetPartitionType"
                          number_of_elements="1"
-                         default_values="0"
-                         panel_visibility="never">
+                         default_values="0">
+                         <!-- panel_visibility="never"> -->
         <!-- 0 == VTK_POLY_DATA -->
+        <!-- 7 == VTK_IMAGE_DATA -->
       </IntVectorProperty>
 
       <IntVectorProperty name="FieldAssociation"
@@ -33,6 +34,9 @@
                          default_values="0"
                          panel_visibility="never">
         <!-- 0 == Points -->
+        <!-- 1 == Cell data --> 
+        <!-- 2 == Field data -->
+        <!-- 3 == No data -->
       </IntVectorProperty>
 
       <DoubleVectorProperty name="Center"

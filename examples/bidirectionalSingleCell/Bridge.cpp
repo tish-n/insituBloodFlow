@@ -61,9 +61,9 @@ void SetData(double **x, long ntimestep, int nghost,
   velocityNormDoubleArray->SetNumberOfTuples((nlx) * (nly) * (nlz));
 
   center->SetNumberOfComponents(3);
-  // center->SetNumberOfTuples((nlx) * (nly) * (nlz));
-  center->SetNumberOfTuples(1);
-  center->SetTuple3(0,1.,2.,3.); // x, y, z
+  center->SetNumberOfTuples((nlx) * (nly) * (nlz));
+  // center->SetNumberOfTuples(1);
+  // center->SetTuple3(0,1.,2.,3.); // x, y, z
 
   // center->SetNumberOfComponents(3);
   // center->SetNumberOfTuples((nlx) * (nly) * (nlz));
@@ -94,7 +94,7 @@ void SetData(double **x, long ntimestep, int nghost,
         velocityNormDoubleArray->SetTuple1(index,norm);
         
         // all internals associated with each datapoint ???? 2/6/23
-        // center->SetTuple3(index,vor[0],vor[1],vor[2]); // THIS IS AN UGLY HACK WILL FIX LATER. 
+        center->SetTuple3(index,vor[0],vor[1],vor[2]); // THIS IS AN UGLY HACK WILL FIX LATER. 
       }
     }
   }
