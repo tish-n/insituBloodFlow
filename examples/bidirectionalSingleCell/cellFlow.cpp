@@ -661,7 +661,7 @@ int main(int argc, char* argv[]) {
     MultiTensorField3D<T,3> vel(lattice);
     MultiTensorField3D<double, 3> vort(lattice);
     MultiScalarField3D<double> velNorm(lattice);
-    pcout<<" -------------------------------------------------------------------------------------------------- before time loop starts ";
+
     //TensorField3D<T,3> velocityArray = vel.getComponent(myrank);
     //TensorField3D<T,3> vorticityArray = vort.getComponent(myrank);
     //ScalarField3D<T> velocityNormArray = velNorm.getComponent(myrank);
@@ -701,59 +701,27 @@ int main(int argc, char* argv[]) {
 			            velocityArray, vorticityArray, velocityNormArray, 
                         nx, ny, nz, domain, envelopeWidth);
         sensei::DataAdaptor *daOut = nullptr;
-        // pcout<<" BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB "<< daOut <<endl;
         Bridge::Analyze(time++, &daOut);
-        // Bridge::Analyze(,, &daOut)
-        // pcout<<" -------------------------------------------------------------------------------------------------- "<< daOut <<endl;
 
-        if (daOut) //&& test2 == 2)
-        // {
-        // sensei::MeshMetadataMap mdMap;
-        // mdMap.Initialize(daOut);
-        // cout <<" -----------------------daOut pointer " << daOut << endl;
-        // // get the mesh metadata object
-        // sensei::MeshMetadataPtr mmd;
-        // mdMap.GetMeshMetadata("fluid", mmd);
-        // svtkDataObject* mesh = nullptr;
-        // cout <<" -----------------------mesh " << mesh << endl;
-        // cout <<" -----------------------mesh metadata pointer " << mmd << endl;
-        // daOut->GetMesh("fluid", false, mesh);
-        // cout <<" -----------------------mesh after GetMesh() " << mesh << endl;
-        // daOut->AddArrays(mesh, "fluid", svtkDataObject::POINT, mmd->ArrayName);
-        // // daOut->AddArray(mesh, "fluid", svtkDataObject::POINT, "coords");
-        // // string* test1 = mmd->ArrayName;
-        // // cout <<" -----------------------Array Names in meshmetadata:" << mmd->ArrayName[0] << " " << test1[1]<< " " << test1[2]<< " " << test1[3]<<endl;
-        // // cout <<" -----------------------Array Names in meshmetadata:" << mmd->ArrayName[0] <<endl;
-        // cout <<" -----------------------mesh after GetMesh() " << mesh << endl;
-        // svtkMultiBlockDataSet *mbfluid = dynamic_cast<svtkMultiBlockDataSet*>(mesh); 
-        // cout <<" -----------------------MultiBlockDataSet pointer " << mbfluid << endl;
-        // // svtkImageData* id = svtkImageData::SafeDownCast(svtkMultiBlockDataSet::SafeDownCast(mesh)->GetBlock(0));
-        // svtkImageData* id = (svtkImageData*)mbfluid->GetBlock(0);
-        // cout <<" -----------------------FluidImageData pointer " << id << endl;
-        // svtkDataArray* center = id->GetPointData()->GetArray("coords");
-        // // svtkDataArray* velocity = id->GetPointData()->GetArray("velocity");
-        // // double* test1 = center->GetTuple3(0);
-        // // cout <<" -----------------------CENTER in cellFlow.cpp " << test1[0] << " " << test1[1]<< " " << test1[2]<< endl;
+        if (daOut) 
+        {
+        sensei::MeshMetadataMap mdMap;
+        mdMap.Initialize(daOut);
+        sensei::MeshMetadataPtr mmd;
+        mdMap.GetMeshMetadata("dataCollection", mmd);
+        svtkDataObject* mesh = nullptr;
+        daOut->GetMesh("dataCollection", false, mesh);
+        daOut->AddArrays(mesh, "dataCollection", svtkDataObject::POINT, mmd->ArrayName);
+        auto pd = svtkPolyData::SafeDownCast(svtkMultiBlockDataSet::SafeDownCast(mesh)->GetBlock(0));
+        double pt[3];
+        pd->GetPoint(0, pt);
+        cout <<" -----------------------point " << pt[0] << " " << pt[1] << " " << pt[2] << endl;
+        mesh->Delete();
 
-
-        // // svtkDataArray* center = id->GetPointData()->GetArray("coords");
-        // cout <<" ----------------------- center pointer " << center << endl;
-        // double* test1 = center->GetTuple3(0);
-        // cout <<" -----------------------CENTER in cellFlow.cpp " << test1[0] << " " << test1[1]<< " " << test1[2]<< endl;
-        // mesh->Delete();
-        // // }
-
-        // // pcout<<" -------------------------------------------------------------------------------------------------- " << dcenterptr << endl;
-        // // pcout<<" -------------------------------------------------------------------------------------------------- " << dcenterptr << endl;
-
-        // daOut->ReleaseData();
-        // daOut->Delete();
-
-        // }
-        // daOut->ReleaseData();
-        // daOut->Delete();
-
-        test2 = 2; 
+        }
+        daOut->ReleaseData();
+        daOut->Delete();
+ 
         }
 
         // Clear and spread fluid force

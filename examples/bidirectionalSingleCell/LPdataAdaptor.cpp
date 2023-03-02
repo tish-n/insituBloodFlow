@@ -190,7 +190,7 @@ namespace senseiLP
     svtkDoubleArray *pb_velocityNormDoubleArray;
 
   // ---------internals for bidirectional_proxies script. 
-    svtkDoubleArray *pb_center;
+    // svtkDoubleArray *pb_center;
 
     long NumBlocks;
     int nlocal, nghost, nanglelist;
@@ -269,7 +269,7 @@ namespace senseiLP
   void LPDataAdaptor::AddPalabosData(svtkDoubleArray *velocityDoubleArray,
                 svtkDoubleArray *vorticityDoubleArray,
                 svtkDoubleArray *velocityNormDoubleArray,
-                        int nx, int ny, int nz, Box3D domainBox, plint envelopeWidth, svtkDoubleArray *center) 
+                        int nx, int ny, int nz, Box3D domainBox, plint envelopeWidth)//, svtkDoubleArray *center) 
   {
     DInternals& internals = (*this->Internals);
 
@@ -286,17 +286,17 @@ namespace senseiLP
     internals.domainBox = domainBox;//XXX domainBox 2/23/22
     internals.envelopeWidth = envelopeWidth;
     // --------- setting up internals for bidirectional:
-    internals.pb_center = center;
+    // internals.pb_center = center;
     // Array<double,3> test1(0.,0.,0.);
     // double* test1 = center->GetTuple3(0);
     // cout <<" -----------------------CENTER in AddPalabosData " << * (center->GetTuple3(0)[1])  << " " << * (center->GetTuple3(0,1)) << " " << * (center->GetTuple3(0,1)) << endl;
     // cout <<" -----------------------CENTER in AddPalabosData " << test1[0] << " " << test1[1]<< " " << test1[2]<< endl;
-    internals.pb_center->SetName("coords");
+    // internals.pb_center->SetName("coords");
   }   
   //----------------------------------------------------------------------
   int LPDataAdaptor::GetNumberOfMeshes(unsigned int &numMeshes)
   {
-    numMeshes = 2;
+    numMeshes = 3;
     return 0;
   }
   //----------------------------------------------------------------------
@@ -358,8 +358,7 @@ namespace senseiLP
     }
     else if(id == 1) // id == 1 is fluid
     {
-      //cout << "GetMeshMetaData Fluid Test" << endl;
-      // metadata->GlobalView = 1;
+
       metadata->MeshName = "fluid"; 
       metadata->MeshType = SVTK_MULTIBLOCK_DATA_SET;
       metadata->BlockType= SVTK_IMAGE_DATA; 
@@ -367,11 +366,11 @@ namespace senseiLP
       metadata->NumBlocks = nRanks;
       metadata->NumBlocksLocal = {1};
       metadata->NumGhostCells = this->Internals->envelopeWidth;  
-      metadata->NumArrays = 4;
-      metadata->ArrayName = {"velocity","vorticity","velocityNorm","coords"};
-      metadata->ArrayComponents = {3, 3, 1, 3}; 
-      metadata->ArrayType = {SVTK_DOUBLE, SVTK_DOUBLE, SVTK_DOUBLE, SVTK_DOUBLE};
-      metadata->ArrayCentering = {svtkDataObject::POINT, svtkDataObject::POINT, svtkDataObject::POINT, svtkDataObject::POINT};
+      metadata->NumArrays = 3;
+      metadata->ArrayName = {"velocity","vorticity","velocityNorm"};
+      metadata->ArrayComponents = {3, 3, 1};//, 3}; 
+      metadata->ArrayType = {SVTK_DOUBLE, SVTK_DOUBLE, SVTK_DOUBLE};
+      metadata->ArrayCentering = {svtkDataObject::POINT, svtkDataObject::POINT, svtkDataObject::POINT};
       metadata->StaticMesh = 1; 
 
       if (metadata->Flags.BlockDecompSet())
@@ -395,23 +394,50 @@ namespace senseiLP
       metadata->BlockNumPoints.push_back((nlx) * (nly) * (nlz)); //(nlx * nly * nlz * 3); //XXX Changed 2/23/22
       metadata->BlockCellArraySize.push_back(0); 
     }
-    // if (id == 2)
-    // {
-    //   metadata->GlobalView = 1;
-    //   metadata->MeshName = "CLOTS";
-    //   metadata->MeshType = SVTK_MULTIBLOCK_DATA_SET;
-    //   metadata->BlockType = SVTK_POLY_DATA;
-    //   metadata->CoordinateType = SVTK_DOUBLE;
-    //   metadata->NumBlocks = 1;
-    //   metadata->NumBlocksLocal = {(rank ? 0 : 1)};
-    //   metadata->NumGhostCells = 0;
-    //   metadata->NumArrays = 1;
-    //   metadata->ArrayName = {"coords"};
-    //   metadata->ArrayCentering = {svtkDataObject::POINT};
-    //   metadata->ArrayComponents = {1};
-    //   metadata->ArrayType = {SVTK_DOUBLE};
-    //   metadata->StaticMesh = 1; 
-    // }
+    else if (id == 2) // dataCollection 
+    {
+      metadata->GlobalView = 1;
+      metadata->MeshName = "dataCollection";
+      metadata->MeshType = SVTK_MULTIBLOCK_DATA_SET;
+      metadata->BlockType = SVTK_POLY_DATA;
+      metadata->CoordinateType = SVTK_DOUBLE;
+      metadata->NumBlocks = 1;
+      metadata->NumBlocksLocal = {(rank ? 0 : 1)};
+      metadata->NumGhostCells = 0;
+      // metadata->NumArrays = 1;
+      // metadata->ArrayName = {"coordinates"};//,"coords_y","coords_z"};
+      // metadata->ArrayCentering = {svtkDataObject::POINT};//,svtkDataObject::POINT,svtkDataObject::POINT};
+      // metadata->ArrayComponents = {3};//,1,1};
+      // metadata->ArrayType = {SVTK_DOUBLE};//, SVTK_DOUBLE, SVTK_DOUBLE};
+      metadata->StaticMesh = 1; 
+      
+      if (metadata->Flags.BlockDecompSet())
+      {
+      metadata->BlockOwner.push_back(0);
+      metadata->BlockIds.push_back(0);
+      }
+      if (metadata->Flags.BlockArrayRangeSet())
+      {
+      std::vector<std::array<double,2>> bar(2,
+        {std::numeric_limits<double>::max(), std::numeric_limits<double>::lowest()});
+
+        bar[0][0] = std::min(bar[0][0], 0.0);
+        bar[0][1] = std::max(bar[0][1], 80.0);
+        // bar[1][0] = std::min(bar[1][0], (double)o.omega0);
+        // bar[1][1] = std::max(bar[1][1], (double)o.omega0);
+        // bar[2][0] = std::min(bar[2][0], (double)o.zeta);
+        // bar[2][1] = std::max(bar[2][1], (double)o.zeta);
+        // bar[3][0] = std::min(bar[3][0], (double)o.type);
+        // bar[3][1] = std::max(bar[3][1], (double)o.type);
+        
+
+      metadata->ArrayRange = bar;
+      metadata->BlockArrayRange.push_back(bar);
+      }
+
+    }
+
+
     else
     {
       SENSEI_ERROR("MeshMetaData Error: id value does not exist")
@@ -425,41 +451,41 @@ namespace senseiLP
     MPI_Comm_rank(this->GetCommunicator(), &rank);
     MPI_Comm_size(this->GetCommunicator(), &size);
     mesh = nullptr;
-    //cout << "Calling GetMesh" << endl;
-    // if (meshName == "CLOTS")
-    // {
-    // DInternals& internals = (*this->Internals);
+    // cout << "Calling GetMesh" << endl;
+    if (meshName == "dataCollection")
+    {
+      DInternals& internals = (*this->Internals);
+      svtkMultiBlockDataSet *mb = svtkMultiBlockDataSet::New();
+      // mesh = mb;
+      mb->SetNumberOfBlocks(0);
 
-    // svtkPolyData *pd = svtkPolyData::New();
-    // svtkMultiBlockDataSet *mb = svtkMultiBlockDataSet::New();
-    // // the oscillators only send on rank 0
-    // mb->SetNumberOfBlocks(1);
+      int rank = 0;
+      MPI_Comm_rank(this->GetCommunicator(), &rank);
+      if (rank == 0)
+      {
+        size_t numPts = 1;
 
-    // int rank = 0;
-    // MPI_Comm_rank(this->GetCommunicator(), &rank);
-    // if (rank == 0)
-    //   {
-    //   size_t numPts = 1;
+        svtkPolyData *pd = svtkPolyData::New();
+        svtkPoints *pts = svtkPoints::New();
 
-    //   svtkPolyData *pd = svtkPolyData::New();
+        pts->SetDataTypeToDouble();
+        pts->SetNumberOfPoints(numPts);
 
-    //   svtkPoints *pts = svtkPoints::New();
-    //   pts->SetDataTypeToFloat();
-    //   pts->SetNumberOfPoints(numPts);
-    //   for (size_t cc=0; cc < numPts; ++cc)
-    //   {
-    //     const Oscillator &o = this->Internals->Oscillators[cc];
-    //     pts->SetPoint(cc, o.center_x, o.center_y, o.center_z);
-    //   }
-    //   pd->SetPoints(pts);
-    //   pts->Delete();
+        pts->SetPoint(0, 1.0, 1.0, 80.0);
+        // pts->SetPoint(1, 2.0, 2.0, 80.0);
+        // pts->SetPoint(2, 3.0, 3.0, 80.0);
 
-    //   mb->SetBlock(0, pd);
-    //   pd->Delete();
-    //   }
-    // }
+        pd->SetPoints(pts);
+        // pts->Delete();
 
-    if(meshName == "cells")
+        mb->SetBlock(rank, pd);
+        pts->Delete();
+        pd->Delete();
+      }
+      mesh = mb;
+    }
+
+    else if(meshName == "cells")
     {  
       DInternals& internals = (*this->Internals);
 
@@ -598,6 +624,50 @@ namespace senseiLP
     //cout << "meshname: " << meshName<< "  ArrayName: " << arrayName << endl;
     int rank;
     MPI_Comm_rank(this->GetCommunicator(), &rank);
+    // if(meshName == "cells")
+    // {
+    //   DInternals& internals = (*this->Internals); 
+    //   if (rank == 0)
+    //   {
+    //     svtkMultiBlockDataSet *mbcells = dynamic_cast<svtkMultiBlockDataSet*>(mesh); 
+    //     svtkPolyData *pd = dynamic_cast<svtkPolyData*>(mbcells->GetBlock(0));
+              
+    //   if(arrayName == "coords")
+    //    {
+    //     pd->GetPointData()->AddArray(internals.pb_center); // set to a better data type 
+    //    }
+    //   }
+    // }
+
+    // if (meshName == "dataCollection")
+    // {
+    //   int rank = 0;
+    //   MPI_Comm_rank(this->GetCommunicator(), &rank);
+    //   if (rank == 0)
+    //     {
+    //     svtkMultiBlockDataSet *mb = dynamic_cast<svtkMultiBlockDataSet*>(mesh);
+    //     svtkPolyData *pd = dynamic_cast<svtkPolyData*>(mb->GetBlock(0));
+    //     size_t numPts = 1;
+
+    //     if (arrayName == "coordinates")
+    //       {
+    //       svtkDoubleArray *radius = svtkDoubleArray::New();
+    //       svtkNew<svtkPoints> pts;
+    //       radius->SetNumberOfTuples(numPts);
+    //       radius->SetName("coordinates");
+    //       // pd->GetPointData()->AddArray(radius);
+    //       // radius->Delete();
+    //       for (size_t i = 0; i < numPts; ++i)
+    //       {
+    //             pts->SetPoint(i, 1.0, 1.0, 1.0);
+    //             pd->SetPoints(pts);
+    //           // radius->SetTypedComponent(i, 0, o.radius);
+    //       }
+    //       pd->GetPointData()->AddArray(radius);
+    //       radius->Delete();
+    //       }
+    //     }
+    // }  
     if(meshName == "fluid")
     {
       DInternals& internals = (*this->Internals); 
@@ -633,10 +703,10 @@ namespace senseiLP
       {
         FluidImageData->GetPointData()->AddArray(internals.pb_velocityNormDoubleArray);
       }
-      else if(arrayName == "coords")
-      {
-        FluidImageData->GetPointData()->AddArray(internals.pb_center); // set to a better data type 
-      }
+      // else if(arrayName == "coords")
+      // {
+      //   FluidImageData->GetPointData()->AddArray(internals.pb_center); // set to a better data type 
+      // }
       else
       {
         SENSEI_ERROR("Array name for Palabos AddArray does not exist in LPDataAdaptor::AddArray")

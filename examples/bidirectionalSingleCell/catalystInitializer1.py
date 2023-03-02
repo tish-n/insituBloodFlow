@@ -33,14 +33,14 @@ def CreateCoProcessor():
       # create a producer from a simulation input
       cellspvd = coprocessor.CreateProducer(datadescription, 'cells')
       fluidpvd = coprocessor.CreateProducer(datadescription, 'fluid')
-      # clotpvd = coprocessor.CreateProducer(datadescription, 'CLOTS')
+      dcpvd = coprocessor.CreateProducer(datadescription, 'dataCollection')
       # fluidpvd.CellArrays = ['vtkTestType']
       # fluidpvd.PointArrays = ['velocity', 'vorticity', 'velocityNorm', 'coords']
 
       # ----------------------------------------------------------------
       # finally, restore active source
       #   SetActiveSource(meshpvd)
-      SetActiveSource(cellspvd)
+      SetActiveSource(fluidpvd)
       # ----------------------------------------------------------------
     return Pipeline()
 
@@ -51,7 +51,7 @@ def CreateCoProcessor():
   coprocessor = CoProcessor()
   # these are the frequencies at which the coprocessor updates.
   # freqs = {'cells': [1],'fluid': [1], 'CLOTS':[1]}
-  freqs = {'cells': [1],'fluid': [1]}
+  freqs = {'cells': [1],'fluid': [1],'dataCollection':[1]}
   # freqs = {'fluid': [1]}
   coprocessor.SetUpdateFrequencies(freqs)
   return coprocessor
@@ -77,6 +77,7 @@ def RequestDataDescription(datadescription):
     if datadescription.GetForceOutput() == True:
         # We are just going to request all fields and meshes from the simulation
         # code/adaptor.
+        print("GetForceOutput() is TRUE")
         for i in range(datadescription.GetNumberOfInputDescriptions()):
             datadescription.GetInputDescription(i).AllFieldsOn()
             datadescription.GetInputDescription(i).GenerateMeshOn()
@@ -98,17 +99,18 @@ def DoCoProcessing(datadescription):
 
     coprocessor.Pipeline.cellspvd.UpdatePipeline(datadescription.GetTime())
     coprocessor.Pipeline.fluidpvd.UpdatePipeline(datadescription.GetTime())
+    coprocessor.Pipeline.dcpvd.UpdatePipeline(datadescription.GetTime())
     # coprocessor.Pipeline.clotpvd.UpdatePipeline(datadescription.GetTime())
 
     # coprocessor.Pipeline.cellspvd.UpdatePipeline()
     # coprocessor.Pipeline.fluidpvd.UpdatePipeline()
 
     # Write output data, if appropriate.
-    # coprocessor.WriteData(datadescription);
+    coprocessor.WriteData(datadescription);
 
     # Write image capture (Last arg: rescale lookup table), if appropriate.
-    # coprocessor.WriteImages(datadescription, rescale_lookuptable=rescale_lookuptable,
-        # image_quality=0, padding_amount=imageFileNamePadding)
+    coprocessor.WriteImages(datadescription, rescale_lookuptable=rescale_lookuptable,
+        image_quality=0, padding_amount=imageFileNamePadding)
 
     # Live Visualization, if enabled.
     coprocessor.DoLiveVisualization(datadescription, "localhost", 22222)

@@ -16,7 +16,7 @@ namespace Bridge
    svtkDoubleArray *velocityNormDoubleArray = svtkDoubleArray::New();
 
    // bidirectional_proxies arrays:
-   svtkDoubleArray *center = svtkDoubleArray::New();
+   
 
 void Initialize(MPI_Comm world, const std::string& config_file){
    
@@ -60,18 +60,7 @@ void SetData(double **x, long ntimestep, int nghost,
   velocityNormDoubleArray->SetNumberOfComponents(1);
   velocityNormDoubleArray->SetNumberOfTuples((nlx) * (nly) * (nlz));
 
-  center->SetNumberOfComponents(3);
-  center->SetNumberOfTuples((nlx) * (nly) * (nlz));
-  // center->SetNumberOfTuples(1);
-  // center->SetTuple3(0,1.,2.,3.); // x, y, z
 
-  // center->SetNumberOfComponents(3);
-  // center->SetNumberOfTuples((nlx) * (nly) * (nlz));
-  // center->SetTuple3(0,0.,0.,0.);
-
-  // coordsArray->SetNumberOfComponents(1);
-  // coordsArray->SetNumberOfTuples(3);
-  // Array<int,3> center(0,0,0);
    //plint EW = envelopeWidth;
 
 //XXX Need to convert this to zero copy: FUTURE WORK
@@ -92,13 +81,11 @@ void SetData(double **x, long ntimestep, int nghost,
         velocityDoubleArray->SetTuple3(index,vel[0],vel[1],vel[2]);
         vorticityDoubleArray->SetTuple3(index,vor[0],vor[1],vor[2]);
         velocityNormDoubleArray->SetTuple1(index,norm);
-        
-        // all internals associated with each datapoint ???? 2/6/23
-        center->SetTuple3(index,vor[0],vor[1],vor[2]); // THIS IS AN UGLY HACK WILL FIX LATER. 
+
       }
     }
   }
- GlobalDataAdaptor->AddPalabosData(velocityDoubleArray, vorticityDoubleArray, velocityNormDoubleArray, nx, ny, nz, domainBox, envelopeWidth, center);
+ GlobalDataAdaptor->AddPalabosData(velocityDoubleArray, vorticityDoubleArray, velocityNormDoubleArray, nx, ny, nz, domainBox, envelopeWidth);
 
 }
 void Analyze(long ntimestep, sensei::DataAdaptor **dataOut)
@@ -116,7 +103,6 @@ void Finalize()
    velocityDoubleArray->Delete(); 
    vorticityDoubleArray->Delete(); 
    velocityNormDoubleArray->Delete(); // jifu: 5/31/2022 working, memory leakage is fixed 
-   center->Delete(); 
    }
 }
 

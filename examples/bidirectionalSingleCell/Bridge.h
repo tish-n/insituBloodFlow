@@ -13,7 +13,7 @@ namespace Bridge
 	           TensorField3D<double, 3> velocityDoubleArray, 
 	           TensorField3D<double, 3> vorticityDoubleArray, 
 	           ScalarField3D<double> velocityNormDoubleArray,
-             int nx, int ny, int nz, Box3D domainBox, plint envelopeWidth);//, Array<int,3> center); 
+             int nx, int ny, int nz, Box3D domainBox, plint envelopeWidth);
   void Analyze(long ntimestep, sensei::DataAdaptor **dataOut); 
   void Finalize();
 }
