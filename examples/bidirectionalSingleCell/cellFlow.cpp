@@ -705,19 +705,22 @@ int main(int argc, char* argv[]) {
 
         if (daOut) 
         {
-        sensei::MeshMetadataMap mdMap;
-        mdMap.Initialize(daOut);
-        sensei::MeshMetadataPtr mmd;
-        mdMap.GetMeshMetadata("dataCollection", mmd);
-        svtkDataObject* mesh = nullptr;
-        daOut->GetMesh("dataCollection", false, mesh);
-        daOut->AddArrays(mesh, "dataCollection", svtkDataObject::POINT, mmd->ArrayName);
-        auto pd = svtkPolyData::SafeDownCast(svtkMultiBlockDataSet::SafeDownCast(mesh)->GetBlock(0));
-        double pt[3];
-        pd->GetPoint(0, pt);
-        cout <<" -----------------------point " << pt[0] << " " << pt[1] << " " << pt[2] << endl;
-        mesh->Delete();
+            if (myrank == 0)
+            {
+                sensei::MeshMetadataMap mdMap;
+                mdMap.Initialize(daOut);
+                sensei::MeshMetadataPtr mmd;
+                mdMap.GetMeshMetadata("dataCollection", mmd);
+                svtkDataObject* mesh = nullptr;
+                daOut->GetMesh("dataCollection", false, mesh);
+                daOut->AddArrays(mesh, "dataCollection", svtkDataObject::POINT, mmd->ArrayName);
+                auto pd = svtkPolyData::SafeDownCast(svtkMultiBlockDataSet::SafeDownCast(mesh)->GetBlock(0));
+                double pt[3];
+                pd->GetPoint(0, pt);
+                cout <<" -----------------------point " << pt[0] << " " << pt[1] << " " << pt[2] << endl;
+                mesh->Delete();
 
+            }
         }
         daOut->ReleaseData();
         daOut->Delete();
