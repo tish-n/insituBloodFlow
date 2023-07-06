@@ -471,7 +471,7 @@ namespace senseiLP
         pts->SetDataTypeToDouble();
         pts->SetNumberOfPoints(numPts);
 
-        pts->SetPoint(0, 1.0, 1.0, 80.0);
+        pts->SetPoint(0, 15.0, 15.0, 5.0);
         // pts->SetPoint(1, 2.0, 2.0, 80.0);
         // pts->SetPoint(2, 3.0, 3.0, 80.0);
 

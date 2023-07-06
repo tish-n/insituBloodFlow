@@ -668,8 +668,19 @@ int main(int argc, char* argv[]) {
     int test2 = 1;
     int t_count = 0;
     float t = 0.;
+    std::stringstream fixDepositString;
+    int fixID = 3;
+  
+
     for (plint iT=0; iT<maxT; ++iT) {
+        
+        // if (iT%iSave ==0 && iT >0){
+        //     wrapper.execCommand("fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian 15 15 10 10 near 4");
+        //     // wrapper.execFile("in.deposit");
+        //     // wrapper.execCommand("dump 1 cells xyz 1 dump.rbc.xyz");
+        // }
         // lammps to calculate force
+        // wrapper.execCommand("run 1"); // pre no post no");
         wrapper.execCommand("run 1 pre no post no");
 
         //Some values are dynamically changing
@@ -696,36 +707,65 @@ int main(int argc, char* argv[]) {
         //cout<<"Rank: " << myrank <<" Vorticity Extents: " <<vorticityArray.getNx() << " " << vorticityArray.getNy() << " " << vorticityArray.getNz()<<endl;
         //cout<<"Rank: " << myrank <<" Velocity Extents: " <<velocityArray.getNx() << " " << velocityArray.getNy() << " " << velocityArray.getNz()<<endl;
         //cout<<"Rank: " << myrank <<" Velocity Norm Extents: " <<velocityNormArray.getNx() << " " << velocityNormArray.getNy() << " " << velocityNormArray.getNz()<<endl;
-        if (iT%iSave ==0 && iT >0){
+        if (iT%(iSave) ==0 && iT >0){
         Bridge::SetData(x, ntimestep, nghost ,nlocal, anglelist, nanglelist,
 			            velocityArray, vorticityArray, velocityNormArray, 
                         nx, ny, nz, domain, envelopeWidth);
         sensei::DataAdaptor *daOut = nullptr;
         Bridge::Analyze(time++, &daOut);
 
-        if (daOut) 
-        {
-            if (myrank == 0)
-            {
-                sensei::MeshMetadataMap mdMap;
-                mdMap.Initialize(daOut);
-                sensei::MeshMetadataPtr mmd;
-                mdMap.GetMeshMetadata("dataCollection", mmd);
-                svtkDataObject* mesh = nullptr;
-                daOut->GetMesh("dataCollection", false, mesh);
-                daOut->AddArrays(mesh, "dataCollection", svtkDataObject::POINT, mmd->ArrayName);
-                auto pd = svtkPolyData::SafeDownCast(svtkMultiBlockDataSet::SafeDownCast(mesh)->GetBlock(0));
-                double pt[3];
-                pd->GetPoint(0, pt);
-                cout <<" -----------------------point " << pt[0] << " " << pt[1] << " " << pt[2] << endl;
-                mesh->Delete();
+        double pt[3];
 
+            if (daOut) 
+            {
+                if (myrank == 0)
+                {
+                    sensei::MeshMetadataMap mdMap;
+                    mdMap.Initialize(daOut);
+                    sensei::MeshMetadataPtr mmd;
+                    mdMap.GetMeshMetadata("dataCollection", mmd);
+                    svtkDataObject* mesh = nullptr;
+                    daOut->GetMesh("dataCollection", false, mesh);
+                    daOut->AddArrays(mesh, "dataCollection", svtkDataObject::POINT, mmd->ArrayName);
+                    auto pd = svtkPolyData::SafeDownCast(svtkMultiBlockDataSet::SafeDownCast(mesh)->GetBlock(0));
+                    //double pt[3];
+                    pd->GetPoint(0, pt);
+                    // cout <<" -----------------------point " << pt[0] << " " << pt[1] << " " << pt[2] << endl;
+                    mesh->Delete();
+
+                    // wrapper.execCommand("fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian 10 10 5 15 near 4 ");
+                    
+                }
+                // broadcast the data to all ranks
+                // cout <<" before --------------------rank: "<<myrank<<" ---point " << pt[0] << " " << pt[1] << " " << pt[2] << endl;   
+            MPI_Bcast(&pt, 3, MPI_DOUBLE, 0, global::mpi().getGlobalCommunicator());
+            cout <<" --------------------rank: "<<myrank<<" ---point " << pt[0] << " " << pt[1] << " " << pt[2] << endl;    
+            // ADDED 7/6/2023 TISHCHENKO
+            // if (iT%iSave ==0 && iT >0){
+                //fixDepositString << "fix " << fixID <<" cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian "<<pt[0]<<" "<<pt[1]<<" "<< pt[2] << " 10 near 2" << endl;
+                 //fixDepositString<< "fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian 10 10 5 15 near 2" << endl;
+                
+                fixDepositString << "fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian "<<pt[0]<<" "<<pt[1]<<" "<< pt[2] << " 10 near 2 "<<endl;
+                //fixDepositString = "fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian "+ to_string(pt[0])+" "+ to_string(pt[1]) + " " + to_string(pt[2]) + " 10 near 2";// << endl;
+                // const string fixDeposit = fixDepositString.str().c_str();
+                //fixID++;
+                // cout << fixDepositString.str() << endl;
+                wrapper.execCommand(fixDepositString);
+                //clear fixDepositString
+                fixDepositString.str("");
+            // }
+
+            // wrapper.execCommand("fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian 10 10 5 10 near 2 ");// this is working, 7/6/2023 TISHCHENKO
+            
+
+            // wrapper.execCommand("dump 1 cells xyz 1 dump.rbc.xyz");
+            daOut->ReleaseData();
+            daOut->Delete();
             }
-        }
-        daOut->ReleaseData();
-        daOut->Delete();
  
         }
+        // deposits a single molecule into the domain through use of fix deposit:
+        
 
         // Clear and spread fluid force
         setExternalVector(lattice,lattice.getBoundingBox(),DESCRIPTOR<T>::ExternalField::forceBeginsAt,force);
@@ -749,7 +789,7 @@ int main(int argc, char* argv[]) {
         //writeVTK(lattice, domainBox, iT);
 	
     }
-
+    wrapper.execCommand("dump 2 cells xyz 1 dump2.rbc.xyz");
     timeduration = global::timer("mainloop").stop();
     pcout<<"total execution time "<<timeduration<<endl;
     delete boundaryCondition;
