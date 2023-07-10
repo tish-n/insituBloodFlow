@@ -45,20 +45,58 @@
 //#include "nearestTwoNeighborLattices3D.h"
 // #include "senseiConfig.h"
 //#ifdef ENABLE_SENSEI
+// #include <svtkPolyData.h>
+#include <svtkMultiBlockDataSet.h>
 #include <svtkVersion.h>
 #include <svtkImageData.h>
 #include <vtkXMLImageDataWriter.h>
 // #include <vtkUnsignedCharArray.h>
 #include <svtkUnsignedCharArray.h>
 #include <svtkPointData.h>
+#include <svtkDataArray.h>
+#include <svtkImageData.h>
 #include <svtkDoubleArray.h>
 #include <svtkSmartPointer.h>
 #include <svtkUniformGrid.h> 
 #include "Bridge.h"
+
+#include "LPdataAdaptor.h"
+#include <DataAdaptor.h>
+
+
+// #include <SVTKDataAdaptor.h>
+#include <MeshMetadata.h>
+#include <MeshMetadataMap.h>
 //#endif
+
+
+// #include "Oscillator.h"
+
+// #include <SVTKDataAdaptor.h>
+#include <MeshMetadata.h>
+#include <MeshMetadataMap.h>
+
+#include <svtkPolyData.h>
+#include <svtkMultiBlockDataSet.h>
+#include <svtkPoints.h>
+#include <svtkPointData.h>
+#include <svtkFloatArray.h>
+#include <svtkIntArray.h>
+#include <svtkSmartPointer.h>
+#include <svtkDataObject.h> // mesh is this
+
+#include <fstream>
+#include <string>
+#include <vector>
+#include <stdexcept>
+#include <cmath>
+#include <algorithm>
 
 using namespace plb;
 using namespace std;
+
+
+
 
 typedef double T;
 //#define DESCRIPTOR descriptors::ForcedN2D3Q19Descriptor
@@ -246,6 +284,101 @@ void squarePoiseuilleSetup( MultiBlockLattice3D<T,DESCRIPTOR>& lattice,
     lattice.initialize();
 }
 
+/// This functional defines a data processor for the instantiation
+///   of bounce-back nodes following the half-circle geometry.
+//XXXX ADDED by Nazariy: 
+template <typename T, template <typename U> class Descriptor>
+class DynamicBoundaryFunctional : public BoxProcessingFunctional3D_L<T, Descriptor> {
+public:
+    DynamicBoundaryFunctional(plint xc_, plint yc_, plint radius_, T rn_, plint it_, plint zl_, plint clotLoc_) : xc(xc_), yc(yc_), radius(radius_), rn(rn_), it(it_), zl(zl_), clotLoc(clotLoc_) { }
+    virtual void process(Box3D domain, BlockLattice3D<T, Descriptor> &lattice)
+    {
+        // clotLoc - location of clot 
+        //BounceBackNodes<T> bbDomain(N, radius);
+        // limiting the iteration of Z for greater efficiency, and unlocking the Z location of clot
+        int zrange = 10; // NEEDS FINISHING - Nazariy 12/21/2022
+        int zmin = domain.z0 + clotLoc - zrange/2; //default zmin
+        int zmax = domain.z0 + clotLoc + zrange/2; //default zmax 
+        if(clotLoc < (domain.z0 + zrange/2)){ // if clot location is before the start of the domain + center of specified range 
+            zmin = domain.z0;
+            zmax = domain.z0+zrange;
+        } 
+        else if(clotLoc < (domain.z0 + zrange/2)){ // if clot location is before the start of the domain + center of specified range 
+            zmin = domain.z0;
+            zmax = domain.z0+zrange;
+        } 
+        else if(clotLoc > domain.z1){
+            zmin = domain.z1;
+            zmax = domain.z1-zrange;
+        } 
+
+        Dot3D relativeOffset = lattice.getLocation();
+        for (plint iX = domain.x0; iX <= domain.x1; ++iX) {
+            for (plint iY = domain.y0; iY <= domain.y1; ++iY) {
+                for (plint iZ = domain.z0; iZ <= domain.z1; ++iZ) {  // was "for (plint iZ = domain.z0; iZ <= domain.z1; ++iZ) {"
+                    T dist = (iY + relativeOffset.y - yc)*(iY + relativeOffset.y - yc) + 
+                             (iX + relativeOffset.x - xc)*(iX + relativeOffset.x - xc); //XXXX change later - Nazariy
+                    T xscale = .5 * rn * it; // scaling factor for x (how wide) replace with a slider later.
+                    T yscale = .5 * radius * sin(.0314*it);  // scaling factor for y (how close to center) dependent on iteration
+                    if(yscale < 0){
+                        T yscale = -.5 * radius * sin(.0314*it);
+                    }
+                    // the representation is y = e ^ (-x^2), but the example is set up in Z direction so here 
+                    // the x stands for domain in Z i.e. values from Z axis and y stands for value being subtracted from the radius
+                    int cntZ = (iZ+relativeOffset.z-(zl / 2))/xscale; // position of Z with resepect to center of Z        
+                    T modRad = yscale * exp(-cntZ*cntZ) + 1; // radius modification parameter
+                    if (dist > (radius - modRad)*(radius - modRad)) {
+                        lattice.attributeDynamics(iX, iY, iZ, new BounceBack<T, DESCRIPTOR>);
+                    }
+                    else{
+                        lattice.attributeDynamics(iX, iY, iZ, new GuoExternalForceBGKdynamics<T, DESCRIPTOR>(1./0.95));
+                    }
+                }
+            }
+        }
+
+        
+    }
+    virtual void getTypeOfModification(std::vector<modif::ModifT> &modified) const
+    {
+        modified[0] = modif::dataStructure;
+    }
+    virtual DynamicBoundaryFunctional<T, Descriptor> *clone() const
+    {
+        return new DynamicBoundaryFunctional<T, Descriptor>(*this);
+    }
+
+private:
+    plint xc,yc,it,zl,clotLoc; // zl added by Nazariy 7/19 // clotLoc added by Nazariy 12/20/2022
+    plint radius;
+    T rn; //XXXX added by Nazariy 7/12
+};
+
+// template <typename T, class Descriptor<typename U>>
+// void DynamicBoundaryFunctional<T, Descriptor<U>>::modifyClotLocation(int newClotLocation)
+// {
+//     // clotLoc = newClotLocation;
+// };
+
+/// Automatic instantiation of the bounce-back nodes for the boundary,
+///   using a data processor.
+void createDynamicBoundaryFromDataProcessor(
+    MultiBlockLattice3D<T, DESCRIPTOR> &lattice, plint xc, plint yc, plint radius, T rn, plint zl, plint clotLoc) // removed 
+{
+    plint it = 50; // change back to 0 when finished debugging the bidirectional stuff and lammps domain stuff. 
+    applyProcessingFunctional(
+        new DynamicBoundaryFunctional<T, DESCRIPTOR>(xc, yc, radius, rn, it, zl, clotLoc), lattice.getBoundingBox(),
+        lattice);
+}
+
+void modifyDynamicBoundaryFromDataProcessor(
+    MultiBlockLattice3D<T, DESCRIPTOR> &lattice, plint xc, plint yc, plint radius, T rn, plint it, plint zl, plint clotLoc)
+{
+    applyProcessingFunctional(
+        new DynamicBoundaryFunctional<T, DESCRIPTOR>(xc, yc, radius, rn, it, zl, clotLoc), lattice.getBoundingBox(),
+        lattice);
+}
+
 T computeRMSerror ( MultiBlockLattice3D<T,DESCRIPTOR>& lattice,
                     IncomprFlowParam<T> const& parameters )
 {
@@ -354,7 +487,7 @@ void VtkPalabos(MultiBlockLattice3D<T, DESCRIPTOR>& lattice,
 	imageData->GetPointData()->AddArray(VorticityValues);
         VorticityValues->SetName("Vorticity");
 	
-    imageData->GetPointData()->AddArray(VelocityNormValues); // ass these lines to add Array pb_vel
+    imageData->GetPointData()->AddArray(VelocityNormValues); // add these lines to add Array pb_vel
         VelocityNormValues->SetName("Velocity Norm");
 
 //	vtkSmartPointer<vtkXMLImageDataWriter> writer =
@@ -386,8 +519,8 @@ int main(int argc, char* argv[]) {
     //const plint Nref = 50;
     //const T uMaxRef = 0.01;
     const T uMax = 0.00075;//uMaxRef /(T)N * (T)Nref; // Needed to avoid compressibility errors
-    const int nx = 30;
-    const int ny = 30;
+    const int nx = 40;
+    const int ny = 40;
     const int nz = 80;
     //using namespace opts;
 
@@ -491,31 +624,63 @@ int main(int argc, char* argv[]) {
     setExternalVector(lattice,lattice.getBoundingBox(),DESCRIPTOR<T>::ExternalField::forceBeginsAt,force);
     //LAMMPS
 
-    long time = 0; 
- 
-    for (plint iT=0;iT<4e3;iT++){
+    plint xc, yc, radius, iterationCAS, zLength, clotLoc;
+
+    xc = 20; // X center 
+    yc = 20; // Y center
+    radius = 20; // radius
+    T radiusNorm = radius/maxT; // double radius/max iterations
+    iterationCAS = 10; // iterations for collideAndStream in the loop 
+    zLength = parameters.getNz(); // because domain.z0 gives local value pass this instead.
+    clotLoc = zLength;  
+    
+    createDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, zLength, clotLoc); // added by NT 7/18/2022
+
+    for (plint iT=0;iT<1e2;iT++){ //(plint iT=0;iT<4e3;iT++){
         lattice.collideAndStream();
     }
+
+    long time = 0; 
+ 
+    // for (plint iT=0;iT<4e3;iT++){
+    //     lattice.collideAndStream();
+    // }
     T timeduration = T();
     global::timer("mainloop").start();
-   plint nlocal;
-   long ntimestep;
-   int nanglelist;
-   int nghost;
-   double **x;
+    plint nlocal;
+    long ntimestep;
+    int nanglelist;
+    int nghost;
+    double **x;
    
-   int **anglelist;
+    int **anglelist;
+    // Array<double,3> center(0.,0.,0.);
+    //  std::vector<std::double> center;
 
-   plint myrank = global::mpi().getRank();
-   MultiTensorField3D<T,3> vel(lattice);
-   MultiTensorField3D<double, 3> vort(lattice);
-   MultiScalarField3D<double> velNorm(lattice);
-   //TensorField3D<T,3> velocityArray = vel.getComponent(myrank);
-   //TensorField3D<T,3> vorticityArray = vort.getComponent(myrank);
-   //ScalarField3D<T> velocityNormArray = velNorm.getComponent(myrank);
-   for (plint iT=0; iT<maxT; ++iT) {
+    plint myrank = global::mpi().getRank();
+    MultiTensorField3D<T,3> vel(lattice);
+    MultiTensorField3D<double, 3> vort(lattice);
+    MultiScalarField3D<double> velNorm(lattice);
+
+    //TensorField3D<T,3> velocityArray = vel.getComponent(myrank);
+    //TensorField3D<T,3> vorticityArray = vort.getComponent(myrank);
+    //ScalarField3D<T> velocityNormArray = velNorm.getComponent(myrank);
+    int test2 = 1;
+    int t_count = 0;
+    float t = 0.;
+    std::stringstream fixDepositString;
+    int fixID = 3;
+  
+
+    for (plint iT=0; iT<maxT; ++iT) {
         
+        // if (iT%iSave ==0 && iT >0){
+        //     wrapper.execCommand("fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian 15 15 10 10 near 4");
+        //     // wrapper.execFile("in.deposit");
+        //     // wrapper.execCommand("dump 1 cells xyz 1 dump.rbc.xyz");
+        // }
         // lammps to calculate force
+        // wrapper.execCommand("run 1"); // pre no post no");
         wrapper.execCommand("run 1 pre no post no");
 
         //Some values are dynamically changing
@@ -532,8 +697,8 @@ int main(int argc, char* argv[]) {
         vort = *computeVorticity(vel);
         velNorm = *computeVelocityNorm(lattice,lattice.getBoundingBox());
 
-	TensorField3D<T,3> velocityArray = vel.getComponent(myrank);
-   	TensorField3D<T,3> vorticityArray = vort.getComponent(myrank);
+	    TensorField3D<T,3> velocityArray = vel.getComponent(myrank);
+   	    TensorField3D<T,3> vorticityArray = vort.getComponent(myrank);
       	ScalarField3D<T> velocityNormArray = velNorm.getComponent(myrank);
       
         Box3D domain = Box3D(localdomain[myrank][0]-envelopeWidth,localdomain[myrank][1]+envelopeWidth,localdomain[myrank][2]-envelopeWidth,localdomain[myrank][3]+envelopeWidth,localdomain[myrank][4]-envelopeWidth,localdomain[myrank][5]+envelopeWidth);
@@ -542,19 +707,79 @@ int main(int argc, char* argv[]) {
         //cout<<"Rank: " << myrank <<" Vorticity Extents: " <<vorticityArray.getNx() << " " << vorticityArray.getNy() << " " << vorticityArray.getNz()<<endl;
         //cout<<"Rank: " << myrank <<" Velocity Extents: " <<velocityArray.getNx() << " " << velocityArray.getNy() << " " << velocityArray.getNz()<<endl;
         //cout<<"Rank: " << myrank <<" Velocity Norm Extents: " <<velocityNormArray.getNx() << " " << velocityNormArray.getNy() << " " << velocityNormArray.getNz()<<endl;
-        if (iT%iSave ==0 && iT >0){
+        if (iT%(iSave) ==0 && iT >0){
         Bridge::SetData(x, ntimestep, nghost ,nlocal, anglelist, nanglelist,
 			            velocityArray, vorticityArray, velocityNormArray, 
                         nx, ny, nz, domain, envelopeWidth);
         sensei::DataAdaptor *daOut = nullptr;
         Bridge::Analyze(time++, &daOut);
+
+        double pt[3];
+
+            if (daOut) 
+            {
+                if (myrank == 0)
+                {
+                    sensei::MeshMetadataMap mdMap;
+                    mdMap.Initialize(daOut);
+                    sensei::MeshMetadataPtr mmd;
+                    mdMap.GetMeshMetadata("dataCollection", mmd);
+                    svtkDataObject* mesh = nullptr;
+                    daOut->GetMesh("dataCollection", false, mesh);
+                    daOut->AddArrays(mesh, "dataCollection", svtkDataObject::POINT, mmd->ArrayName);
+                    auto pd = svtkPolyData::SafeDownCast(svtkMultiBlockDataSet::SafeDownCast(mesh)->GetBlock(0));
+                    //double pt[3];
+                    pd->GetPoint(0, pt);
+                    // cout <<" -----------------------point " << pt[0] << " " << pt[1] << " " << pt[2] << endl;
+                    mesh->Delete();
+
+                    // wrapper.execCommand("fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian 10 10 5 15 near 4 ");
+                    
+                }
+                // broadcast the data to all ranks
+                // cout <<" before --------------------rank: "<<myrank<<" ---point " << pt[0] << " " << pt[1] << " " << pt[2] << endl;   
+            MPI_Bcast(&pt, 3, MPI_DOUBLE, 0, global::mpi().getGlobalCommunicator());
+            cout <<" --------------------rank: "<<myrank<<" ---point " << pt[0] << " " << pt[1] << " " << pt[2] << endl;    
+            // ADDED 7/6/2023 TISHCHENKO
+            // if (iT%iSave ==0 && iT >0){
+                //fixDepositString << "fix " << fixID <<" cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian "<<pt[0]<<" "<<pt[1]<<" "<< pt[2] << " 10 near 2" << endl;
+                 //fixDepositString<< "fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian 10 10 5 15 near 2" << endl;
+                
+                fixDepositString << "fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian "<<pt[0]<<" "<<pt[1]<<" "<< pt[2] << " 10 near 2 "<<endl;
+                //fixDepositString = "fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian "+ to_string(pt[0])+" "+ to_string(pt[1]) + " " + to_string(pt[2]) + " 10 near 2";// << endl;
+                // const string fixDeposit = fixDepositString.str().c_str();
+                //fixID++;
+                // cout << fixDepositString.str() << endl;
+                wrapper.execCommand(fixDepositString);
+                //clear fixDepositString
+                fixDepositString.str("");
+            // }
+
+            // wrapper.execCommand("fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian 10 10 5 10 near 2 ");// this is working, 7/6/2023 TISHCHENKO
+            
+
+            // wrapper.execCommand("dump 1 cells xyz 1 dump.rbc.xyz");
+            daOut->ReleaseData();
+            daOut->Delete();
+            }
+ 
         }
+        // deposits a single molecule into the domain through use of fix deposit:
+        
 
         // Clear and spread fluid force
         setExternalVector(lattice,lattice.getBoundingBox(),DESCRIPTOR<T>::ExternalField::forceBeginsAt,force);
-        ////-----classical ibm coupling-------------//
+        ////------------ classical ibm coupling-------------//
         spreadForce3D(lattice,wrapper);
+        ///--------------redefine a new domain--------------// NT 12/20
+        // modifyDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, iT, zLength, clotLoc);
         ////// Lattice Boltzmann iteration step.
+
+        // for(int iteration=0; iteration<iterationCAS; iteration++){
+        //     lattice.collideAndStream();
+        // }
+        // if the modifyDynamicBoundaryFromDataProcessor is used the above is the "proper" way of doing it 12/21
+        
         lattice.collideAndStream();
         ////// Interpolate and update solid position
         interpolateVelocity3D(lattice,wrapper);
@@ -564,9 +789,11 @@ int main(int argc, char* argv[]) {
         //writeVTK(lattice, domainBox, iT);
 	
     }
-
+    wrapper.execCommand("dump 2 cells xyz 1 dump2.rbc.xyz");
     timeduration = global::timer("mainloop").stop();
     pcout<<"total execution time "<<timeduration<<endl;
     delete boundaryCondition;
     Bridge::Finalize();
 }
+
+

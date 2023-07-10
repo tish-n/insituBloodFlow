@@ -27,12 +27,12 @@ cd $SRCDIR
 echo "downloading Palabos:"
 git clone https://gitlab.com/unigespc/palabos.git
 
-echo "changing directory to src/Palabos"
-cd palabos
-echo "checking out the compatible version"
-git checkout e498e8ad7f24fd7ff87313670db7873703c1fd3f
-echo "changing directory back to src"
-cd ..
+# echo "changing directory to src/Palabos"
+# cd palabos
+# echo "checking out the compatible version"
+# git checkout e498e8ad7f24fd7ff87313670db7873703c1fd3f
+# echo "changing directory back to src"
+# cd ..
 
 ##########
 # LAMMPS #
@@ -40,12 +40,12 @@ cd ..
 
 echo "downloading LAMMPS:"
 git clone https://github.com/lammps/lammps.git
-echo "changing directory to src/lammps"
-cd lammps
-echo "checking out the compatible version"
-git checkout e960674cea38515ae3749218c314a9e1a3c6c140
-cd ..
-echo "changing directory to insituBloodFlow/BloodFlow/rbc"
+# echo "changing directory to src/lammps"
+# cd lammps
+# echo "checking out the compatible version"
+# git checkout e960674cea38515ae3749218c314a9e1a3c6c140
+# cd ..
+# echo "changing directory to insituBloodFlow/BloodFlow/rbc"
 cd $BFDIR/rbc
 echo "copying the necessary additions to lammps library:"
 cp bond_wlc_pow.* $SRCDIR/lammps/src
@@ -72,7 +72,7 @@ echo "\ncurrent directory is:" $PWD
 echo "\ninstalling ParaView:"
 git clone --recursive https://gitlab.kitware.com/paraview/paraview.git
 cd paraview
-git checkout v5.10.1
+git checkout v5.11.1
 git submodule update --init --recursive
 echo "\nsetting ParaView install options:"
 cmake -B $BUILDDIR/paraview -S $SRCDIR/paraview -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$INSTALLDIR/paraview -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DPARAVIEW_USE_PYTHON=ON -DPARAVIEW_USE_MPI=ON -DPARAVIEW_USE_QT=OFF -DVTK_SMP_IMPLEMENTATION_TYPE=TBB -DPARAVIEW_BUILD_EDITION=CATALYST_RENDERING -DVTK_USE_X=OFF -DVTK_OPENGL_HAS_OSMESA=ON -DOSMESA_INCLUDE_DIR=/usr/include/GL/ -DOSMESA_LIBRARY=/usr/lib/x86_64-linux-gnu/libOSMesa.so
@@ -123,18 +123,14 @@ cd $SRCDIR/SENSEI/miniapps
 
 mv singleCell4.0 singleCell
 
-cmake -S  $SRCDIR/SENSEI -B $BUILDDIR/sensei -DCMAKE_INSTALL_PREFIX=$INSTALLDIR/sensei -DParaView_DIR=$INSTALLDIR/paraview/lib/cmake/paraview-5.10 -DENABLE_PYTHON=ON -DENABLE_CATALYST_PYTHON=ON -DENABLE_CATALYST=ON -DENABLE_VTK_IO=ON -DENABLE_LAMMPS=OFF -DENABLE_MANDELBROT=OFF -DENABLE_SINGLECELL=ON -DENABLE_OSCILLATORS=ON -DENABLE_ADIOS2=ON -DADIOS2_DIR=$INSTALLDIR/ADIOS2/lib/cmake/adios2 
+PVDIR="$INSTALLDIR/paraview/lib/cmake/paraview-5.11"
+
+cmake -S  $SRCDIR/SENSEI -B $BUILDDIR/sensei -DCMAKE_INSTALL_PREFIX=$INSTALLDIR/sensei -DParaView_DIR=$PVDIR -DENABLE_PYTHON=ON -DENABLE_CATALYST_PYTHON=ON -DENABLE_CATALYST=ON -DENABLE_VTK_IO=ON -DENABLE_LAMMPS=OFF -DENABLE_MANDELBROT=OFF -DENABLE_SINGLECELL=ON -DENABLE_OSCILLATORS=ON -DENABLE_ADIOS2=ON -DADIOS2_DIR=$INSTALLDIR/ADIOS2/lib/cmake/adios2 
 echo "changing directory to build/SENSEI"
 cd $BUILDDIR/sensei
 echo "installing SENSEI"
 make -j8
-
-# cmake -S  $SRCDIR/SENSEI -B $BUILDDIR/sensei -DCMAKE_INSTALL_PREFIX=$INSTALLDIR/sensei -DParaView_DIR=$PVIEWDIR -DENABLE_CATALYST=ON -DENABLE_VTK_IO=ON -DENABLE_LAMMPS=OFF -DENABLE_MANDELBROT=OFF -DENABLE_OSCILLATORS=OFF -DENABLE_ADIOS2=OFF -DADIOS2_DIR=$ADIOSDIR
-# echo "changing directory to build/SENSEI"
-# cd $BUILDDIR/sensei
-# echo "installing SENSEI"
-# make -j8 
-# make -j8 install
+make -j8 install
 echo "done installing SENSEI"
 
 ############################
@@ -143,16 +139,6 @@ echo "done installing SENSEI"
 
 echo "changing directory to BloodFlow/examples/singleCell"
 SINGCDIR="$BFDIR/examples/singleCell"
+cp $BUILDDIR/sensei/miniapps/cellFlow $SINGCDIR
 cd $SINGCDIR
-echo "making build directory:"
-mkdir build
-echo "changing directory to base"
-cd $BASEDIR 
-cmake -S $SINGCDIR -B $SINGCDIR/build -DSENSEI_DIR=$INSTALLDIR/sensei/lib/cmake -DPALABOS_ROOT=$SRCDIR/palabos -DBLOODFLOW_ROOT=$BFDIR -DLAMMPS_DIR=$SRCDIR/lammps -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_STANDARD=11
-
-
-cd $SINGCDIR/build
-make -j8
-cd ..
-echo "running test simulation for single cell example:"
-mpirun -n 4 cellFlow in.lmp4cell 1000 10
+mpirun -n 4 cellFlow in.lmp4cell 1000 10 $PWD/cellFlow.xml
