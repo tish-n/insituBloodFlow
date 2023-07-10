@@ -54,9 +54,9 @@ mv bidirectionalSingleCell singleCell
 
 # cp $BUILDDIR/sensei/miniapps/cellFlow $SINGCDIR
 
-PVDIR="/home/tishn/myFork/insituBloodFlow/install/paraview/lib/cmake/paraview-5.10" #modify this.
+PVDIR="/home/ntishchenko/test/insituBloodFlow/install/paraview/lib/cmake/paraview-5.10" #modify this.
 # PVDIR="$INSTALLDIR/paraview/lib/cmake/paraview-5.10"
-ADIOSDIR="/home/tishn/myFork/insituBloodFlow/install/ADIOS2/lib/cmake/adios2" #modify this.
+ADIOSDIR="/home/ntishchenko/test/insituBloodFlow/install/ADIOS2/lib/cmake/adios2" #modify this.
 
 cmake -S  $SRCDIR/SENSEI -B $BUILDDIR/sensei -DCMAKE_INSTALL_PREFIX=$INSTALLDIR/sensei -DParaView_DIR=$PVDIR -DENABLE_PYTHON=ON -DENABLE_CATALYST_PYTHON=ON -DENABLE_CATALYST=ON -DENABLE_VTK_IO=ON -DENABLE_LAMMPS=OFF -DENABLE_MANDELBROT=OFF -DENABLE_SINGLECELL=ON -DENABLE_OSCILLATORS=ON -DENABLE_ADIOS2=ON -DADIOS2_DIR=$ADIOSDIR 
 echo "changing directory to build/SENSEI"

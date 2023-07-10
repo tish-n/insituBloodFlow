@@ -4,7 +4,7 @@ enable_language(CXX)
 
 set(PALABOS_ROOT "../../../palabos/" CACHE STRING "")
 set(BLOODFLOW_ROOT "../../../../BloodFlow/" CACHE STRING "")
-set(LAMMPS_LIB "/home/tishn/test/insituBloodFlow/src/lammps/src" CACHE STRING "")
+set(LAMMPS_LIB "/home/ntishchenko/test/insituBloodFlow/src/lammps/src" CACHE STRING "")
 
 # set(SENSEI_DIR "/home/tishn/myFork/insituBloodFlow/install/sensei/lib/cmake/" CACHE PATH "Path to SENSEI root directory")
 # set(SENSEI_INCLUDE "/home/tishn/myFork/insituBloodFlow/install/sensei/include/" CACHE PATH "")
