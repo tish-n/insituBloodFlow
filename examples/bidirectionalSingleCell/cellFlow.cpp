@@ -669,7 +669,14 @@ int main(int argc, char* argv[]) {
     int t_count = 0;
     float t = 0.;
     std::stringstream fixDepositString;
-    int fixID = 3;
+    std::stringstream rbcxloString;
+    std::stringstream rbcxhiString;
+    std::stringstream rbcyloString;
+    std::stringstream rbcyhiString;
+    std::stringstream rbczloString;
+    std::stringstream rbczhiString;
+
+    int numPoints = 0;
   
 
     for (plint iT=0; iT<maxT; ++iT) {
@@ -715,52 +722,81 @@ int main(int argc, char* argv[]) {
         Bridge::Analyze(time++, &daOut);
 
         double pt[3];
+        svtkPolyData* pd = nullptr;
+        svtkDataObject* mesh = nullptr;
 
             if (daOut) 
             {
+                // data collection mesh only exists on one rank. this sets up for iterating for all points (including ones added by paraview GUI)    
                 if (myrank == 0)
                 {
                     sensei::MeshMetadataMap mdMap;
                     mdMap.Initialize(daOut);
                     sensei::MeshMetadataPtr mmd;
                     mdMap.GetMeshMetadata("dataCollection", mmd);
-                    svtkDataObject* mesh = nullptr;
                     daOut->GetMesh("dataCollection", false, mesh);
                     daOut->AddArrays(mesh, "dataCollection", svtkDataObject::POINT, mmd->ArrayName);
-                    auto pd = svtkPolyData::SafeDownCast(svtkMultiBlockDataSet::SafeDownCast(mesh)->GetBlock(0));
-                    //double pt[3];
-                    pd->GetPoint(0, pt);
-                    // cout <<" -----------------------point " << pt[0] << " " << pt[1] << " " << pt[2] << endl;
-                    mesh->Delete();
-
-                    // wrapper.execCommand("fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian 10 10 5 15 near 4 ");
-                    
+                    pd = svtkPolyData::SafeDownCast(svtkMultiBlockDataSet::SafeDownCast(mesh)->GetBlock(0));
+                    numPoints = pd->GetNumberOfPoints();
                 }
-                // broadcast the data to all ranks
-                // cout <<" before --------------------rank: "<<myrank<<" ---point " << pt[0] << " " << pt[1] << " " << pt[2] << endl;   
-            MPI_Bcast(&pt, 3, MPI_DOUBLE, 0, global::mpi().getGlobalCommunicator());
-            cout <<" --------------------rank: "<<myrank<<" ---point " << pt[0] << " " << pt[1] << " " << pt[2] << endl;    
-            // ADDED 7/6/2023 TISHCHENKO
-            // if (iT%iSave ==0 && iT >0){
-                //fixDepositString << "fix " << fixID <<" cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian "<<pt[0]<<" "<<pt[1]<<" "<< pt[2] << " 10 near 2" << endl;
-                 //fixDepositString<< "fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian 10 10 5 15 near 2" << endl;
-                
-                fixDepositString << "fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian "<<pt[0]<<" "<<pt[1]<<" "<< pt[2] << " 10 near 2 "<<endl;
-                //fixDepositString = "fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian "+ to_string(pt[0])+" "+ to_string(pt[1]) + " " + to_string(pt[2]) + " 10 near 2";// << endl;
-                // const string fixDeposit = fixDepositString.str().c_str();
-                //fixID++;
-                // cout << fixDepositString.str() << endl;
-                wrapper.execCommand(fixDepositString);
-                //clear fixDepositString
-                fixDepositString.str("");
-            // }
 
-            // wrapper.execCommand("fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian 10 10 5 10 near 2 ");// this is working, 7/6/2023 TISHCHENKO
+                // broadcast number of points to all ranks
+                MPI_Bcast(&numPoints, 1, MPI_INT, 0, global::mpi().getGlobalCommunicator());
+                for(int i = 0; i < numPoints; i++)
+                {
+                    if (myrank == 0)
+                    {
+                        pd->GetPoint(i, pt);
+                    }
+                    // broadcast point coordinates for this particular point
+                    MPI_Bcast(&pt, 3, MPI_DOUBLE, 0, global::mpi().getGlobalCommunicator());
+                    pcout <<" ------point # " << i << " coords:" << pt[0] << " " << pt[1] << " " << pt[2] << endl;    
+                    // define a region around this point
+                    // add varaible to define region size (currently 10)
+                    // int rbczone_xmin = pt[0] - 5;
+                    // int rbczone_xmax = pt[0] + 5;
+                    // int rbczone_ymin = pt[1] - 5;
+                    // int rbczone_ymax = pt[1] + 5;
+                    // int rbczone_zmin = pt[2] - 5;
+                    // int rbczone_zmax = pt[2] + 5;
+
+                    // rbcxloString << "variable rbcxlo equal "<<rbczone_xmin<<endl;
+                    // rbcxhiString << "variable rbcxhi equal "<<rbczone_xmax<<endl;
+                    // rbcyloString << "variable rbcylo equal "<<rbczone_ymin<<endl;
+                    // rbcyhiString << "variable rbcyhi equal "<<rbczone_ymax<<endl;
+                    // rbczloString << "variable rbczlo equal "<<rbczone_zmin<<endl;
+                    // rbczhiString << "variable rbczhi equal "<<rbczone_zmax<<endl;
+
+
+                    // wrapper.execCommand(rbcxloString);
+                    // wrapper.execCommand(rbcxhiString);
+                    // wrapper.execCommand(rbcyloString);
+                    // wrapper.execCommand(rbcyhiString);
+                    // wrapper.execCommand(rbczloString);
+                    // wrapper.execCommand(rbczhiString);
+                    
+
+                    // deposit a cell at this point
+                    fixDepositString << "fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian "<<pt[0]<<" "<<pt[1]<<" "<< pt[2] << " 10 near 1 "<<endl;
+                    wrapper.execCommand(fixDepositString);
+                    //clear fixDepositString
+                    // rbcxloString.str("");
+                    // rbcxhiString.str("");
+                    // rbcyloString.str("");
+                    // rbcyhiString.str("");
+                    // rbczloString.str("");
+                    // rbczhiString.str("");
+
+                    fixDepositString.str("");
+                }
+               
+                // this is an ugly hack and will need to be refactored and restructured for the final version
+                pd->Delete();
+                mesh->Delete();
+                daOut->ReleaseData();
+                daOut->Delete();
             
 
-            // wrapper.execCommand("dump 1 cells xyz 1 dump.rbc.xyz");
-            daOut->ReleaseData();
-            daOut->Delete();
             }
  
         }

@@ -45,7 +45,16 @@ comm_modify cutoff 10#  # XXX Was 5: Communication Distance, might need to be ch
 # use fix SRD to push small particles out from inside big ones
 
 molecule singleRBC rbc.molecule 
-region RBC_zone block 8 22 8 22 0 40 side in # Tishchenko 6.28.2023
+
+# variable rbcxlo equal 8
+# variable rbcxhi equal 22
+# variable rbcylo equal 8
+# variable rbcyhi equal 22
+# variable rbczlo equal 0
+# variable rbczhi equal 20.0
+
+# region RBC_zone block v_rbcxlo v_rbcxhi v_rbcylo v_rbcyhi v_rbczlo v_rbczhi side in # Tishchenko 7.11.2023
+region RBC_zone block 8 22 8 22 0 80 side in # Tishchenko 6.28.2023
 
 timestep	100
 
