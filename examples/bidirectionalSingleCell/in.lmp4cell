@@ -7,7 +7,7 @@ atom_style	molecular
 atom_modify	first cells	# treat big as first group atom list
 dimension	3
 boundary 	f f p	# x periodic y fix z periodic
-#processors 2 1 4 #map xyz
+# processors 2 1 4 #map xyz
 #create big particles with sigma 1.0
 
 lattice		sc 1 # reduced density: factor^2=1/0.4
@@ -64,6 +64,12 @@ fix 2 cells fcm 1
 #fix 4 cells viscous 0.1
 #     nevery LBtype dynamic_vis rho 
 fix 3 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone id max gaussian 10 10 10 10 near 2 # vz 10 20 # Tishchenko 6.28.2023
+region RBC_zone_1 block 10 20 10 20 0 10 
+fix 4 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone_1 id max gaussian 15 15 5 10 near 1
+region RBC_zone_2 block 10 20 10 20 35 45 
+fix 5 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone_2 id max gaussian 15 15 40 10 near 1
+region RBC_zone_3 block 10 20 10 20 65 75 
+fix 6 cells deposit 1 0 1 12345 mol singleRBC region RBC_zone_3 id max gaussian 15 15 70 10 near 1
 #fix 2 cells lb/fluid 1 1 0.1667 1 dx 1 dm 1 printfluid 100 zwall_velocity 0 1e-5
 #fix 2 cells lbm 1 1 0.1667 1 dx 1 dm 1 printfluid 100 zwall_velocity 0 1e-5
 #fix 2 cells lbm 1 1 0.1667 1 dx 1 dm 1 printfluid 100 zlo velocity 0 0 0 zhi velocity 0 1e-5 0

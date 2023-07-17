@@ -675,6 +675,9 @@ int main(int argc, char* argv[]) {
     rbcZoneID << "RBC_zone";
     int catalystCalls = 0;
     int numPoints = 0;
+    int fixId = 0; // fix id for lammps fix deposit command
+    std::vector<vector<double>> oldPt;
+    oldPt.resize(3);    
   
 
     for (plint iT=0; iT<maxT; ++iT) {
@@ -714,7 +717,6 @@ int main(int argc, char* argv[]) {
         double pt[3];
         svtkPolyData* pd = nullptr;
         svtkDataObject* mesh = nullptr;
-        std::vector<vector<double>> oldPt;
         // this segment of code implements bidirectional steering of the simulation from ParaView:
         // written by a novice programmer; in dire need of refactoring
             if (daOut) 
@@ -735,17 +737,10 @@ int main(int argc, char* argv[]) {
                 // broadcast number of points to all ranks
                 MPI_Bcast(&numPoints, 1, MPI_INT, 0, global::mpi().getGlobalCommunicator());
 
-                // save old point coordinates 
-                if (catalystCalls>1)
-                {
-                    oldPt[0].resize(numPoints);
-                    oldPt[1].resize(numPoints);
-                    oldPt[2].resize(numPoints);
-                }
-
-                // oldPt[0].resize(numPoints);
-                // oldPt[1].resize(numPoints);
-                // oldPt[2].resize(numPoints);
+                // resize oldPt vector to number of points
+                oldPt[0].resize(numPoints);
+                oldPt[1].resize(numPoints);
+                oldPt[2].resize(numPoints);
 
                 // iterate through all points
                 for(int i = 0; i < numPoints; i++)
@@ -756,7 +751,6 @@ int main(int argc, char* argv[]) {
                     }
                     // broadcast point coordinates for this particular point
                     MPI_Bcast(&pt, 3, MPI_DOUBLE, 0, global::mpi().getGlobalCommunicator());
-                    pcout <<" ------point # " << i << " coords:" << pt[0] << " " << pt[1] << " " << pt[2] << endl;    
                     // define a region around this point
                     // add varaible to define region size (currently 10)
                     int rbczone_xmin = pt[0] - 5;
@@ -766,26 +760,26 @@ int main(int argc, char* argv[]) {
                     int rbczone_zmin = pt[2] - 5;
                     int rbczone_zmax = pt[2] + 5;           
 
-                    if(catalystCalls > 0) // if this is not the first time through the loop
-                    {
-                        pcout << " ------ old point # " << i << " coords:" << oldPt[0][i] << " " << oldPt[1][i] << " " << oldPt[2][i] << endl;
-                        if(pt[0] != oldPt[0][i] || pt[1] != oldPt[1][i] || pt[2] != oldPt[2][i]) // if the point has moved
-                        {
-                            // delete the old region
-                            regionDeleteString << "region "<< rbcZoneID.str() <<" delete" << endl;
-                            wrapper.execCommand(regionDeleteString);
-                        
-                            // define a new region around the new point
-                            rbcZoneID.str("");
-                            rbcZoneID << "RBC_zone_" << i << "_" << catalystCalls;
-                            rbcZoneString << "region "<< rbcZoneID.str() << " block " << rbczone_xmin << " " << rbczone_xmax << " " << rbczone_ymin << " " << rbczone_ymax << " " << rbczone_zmin << " " << rbczone_zmax << endl;
-                            wrapper.execCommand(rbcZoneString);
-                            pcout << " ------ rbc zone string: " << rbcZoneString.str() << endl;
-                        }
+                    // if(catalystCalls > 0) // if this is not the first time through the loop
+                    // {
+                        // if(pt[0] != oldPt[0][i] || pt[1] != oldPt[1][i] || pt[2] != oldPt[2][i]) // if the point has moved
+                    
+                        // delete the old region
+                        // regionDeleteString << "region "<< rbcZoneID.str() <<" delete" << endl;
+                        // wrapper.execCommand(regionDeleteString);
+                    
+                        // define a new region around the new point
+                    rbcZoneID.str("");
+                    rbcZoneID << "RBC_zone_" << i << "_" << catalystCalls;
+                    rbcZoneString << "region "<< rbcZoneID.str() << " block " << rbczone_xmin << " " << rbczone_xmax << " " << rbczone_ymin << " " << rbczone_ymax << " " << rbczone_zmin << " " << rbczone_zmax << " side in";
+                    wrapper.execCommand(rbcZoneString);
+                    pcout << " ------ rbc zone string: " << rbcZoneString.str() << endl;
+                    // }
+                    fixId = 3+i; // need to have 3+i here because the fix id needs to be unique for each point
 
-                    }
-
-                    fixDepositString << "fix 3 cells deposit 1 0 1 12345 mol singleRBC region " << rbcZoneID.str() << " id max gaussian "<<pt[0]<<" "<<pt[1]<<" "<< pt[2] << " 10 near 1 "<<endl;
+                    fixDepositString << "fix " << fixId <<" cells deposit 1 0 1 12345 mol singleRBC region " << rbcZoneID.str() << " id max gaussian "<<pt[0]<<" "<<pt[1]<<" "<< pt[2] << " 10 near 1";
+                    // this will only work if the fix id is unique for each point
+                    // fixDepositString << "fix 3 cells deposit 1 0 1 12345 mol singleRBC region " << rbcZoneID.str() << " id max gaussian "<<pt[0]<<" "<<pt[1]<<" "<< pt[2] << " 10 near 1";
                     wrapper.execCommand(fixDepositString);
                     pcout << "fix deposit string: " << fixDepositString.str() << endl;
        
@@ -794,15 +788,13 @@ int main(int argc, char* argv[]) {
                     oldPt[1][i] = pt[1];
                     oldPt[2][i] = pt[2];
 
-                    pcout << " ------ old point # " << i << " coords:" << oldPt[0][i] << " " << oldPt[1][i] << " " << oldPt[2][i] << endl;
                     // increment catalystCalls to keep track of how many times through the loop
                     // to clear the old region before creating a new region on the next iteration
-                    catalystCalls++;
                     rbcZoneString.str("");
                     regionDeleteString.str("");
                     fixDepositString.str("");
                 }
-                
+                catalystCalls++;
                 if (myrank == 0)
                 {
                     mesh->Delete();
