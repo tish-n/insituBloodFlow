@@ -238,40 +238,16 @@ void squarePoiseuilleSetup( MultiBlockLattice3D<T,DESCRIPTOR>& lattice,
     const plint nz = parameters.getNz();
     Box3D top    = Box3D(0,    nx-1, ny-1, ny-1, 0, nz-1);
     Box3D bottom = Box3D(0,    nx-1, 0,    0,    0, nz-1);
-    
-    //Box3D inlet  = Box3D(0,    nx-1, 1,    ny-2, 0,    0);
-    //Box3D outlet = Box3D(0,    nx-1, 1,    ny-2, nz-1, nz-1);
+
     
     Box3D left   = Box3D(0,    0,    1,    ny-2, 1, nz-2);
     Box3D right  = Box3D(nx-1, nx-1, 1,    ny-2, 1, nz-2);
-    // shear flow top bottom surface
-    /*
-    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, inlet, boundary::outflow );
-    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, outlet, boundary::outflow );
 
-    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, top );
-    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, bottom );
-    
-    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, left, boundary::outflow );
-    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, right, boundary::outflow );
-    
-    setBoundaryVelocity(lattice, top, ShearTopVelocity<T>(parameters,NMAX));
-    setBoundaryVelocity(lattice, bottom, ShearBottomVelocity<T>(parameters,NMAX));
-    
-    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, inlet, boundary::outflow );
-    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, outlet, boundary::outflow );
-    */
-    // channel flow
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, inlet);
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, outlet);
     boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, top );
     boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, bottom );
     boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, left );
     boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, right );
-    
-    //setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocity<T>(parameters, NMAX));
-    //setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocity<T>(parameters, NMAX));
-    
+ 
     setBoundaryVelocity(lattice, top, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
     setBoundaryVelocity(lattice, bottom, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
     setBoundaryVelocity(lattice, left, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
@@ -284,13 +260,10 @@ void squarePoiseuilleSetup( MultiBlockLattice3D<T,DESCRIPTOR>& lattice,
     lattice.initialize();
 }
 
-/// This functional defines a data processor for the instantiation
-///   of bounce-back nodes following the half-circle geometry.
-//XXXX ADDED by Nazariy: 
 template <typename T, template <typename U> class Descriptor>
 class DynamicBoundaryFunctional : public BoxProcessingFunctional3D_L<T, Descriptor> {
 public:
-    DynamicBoundaryFunctional(plint xc_, plint yc_, plint radius_, T rn_, plint it_, plint zl_, plint clotLoc_) : xc(xc_), yc(yc_), radius(radius_), rn(rn_), it(it_), zl(zl_), clotLoc(clotLoc_) { }
+    DynamicBoundaryFunctional(plint xc_, plint yc_, plint radius_, T rn_, plint zl_, plint clotLoc_) : xc(xc_), yc(yc_), radius(radius_), rn(rn_), zl(zl_), clotLoc(clotLoc_) { }
     virtual void process(Box3D domain, BlockLattice3D<T, Descriptor> &lattice)
     {
         // clotLoc - location of clot 
@@ -311,7 +284,7 @@ public:
             zmin = domain.z1;
             zmax = domain.z1-zrange;
         } 
-
+        plint it = 0;
         Dot3D relativeOffset = lattice.getLocation();
         for (plint iX = domain.x0; iX <= domain.x1; ++iX) {
             for (plint iY = domain.y0; iY <= domain.y1; ++iY) {
@@ -349,33 +322,25 @@ public:
     }
 
 private:
-    plint xc,yc,it,zl,clotLoc; // zl added by Nazariy 7/19 // clotLoc added by Nazariy 12/20/2022
+    plint xc,yc,zl,clotLoc; // zl added by Nazariy 7/19 // clotLoc added by Nazariy 12/20/2022
     plint radius;
     T rn; //XXXX added by Nazariy 7/12
 };
 
-// template <typename T, class Descriptor<typename U>>
-// void DynamicBoundaryFunctional<T, Descriptor<U>>::modifyClotLocation(int newClotLocation)
-// {
-//     // clotLoc = newClotLocation;
-// };
 
-/// Automatic instantiation of the bounce-back nodes for the boundary,
-///   using a data processor.
 void createDynamicBoundaryFromDataProcessor(
     MultiBlockLattice3D<T, DESCRIPTOR> &lattice, plint xc, plint yc, plint radius, T rn, plint zl, plint clotLoc) // removed 
 {
-    plint it = 50; // change back to 0 when finished debugging the bidirectional stuff and lammps domain stuff. 
     applyProcessingFunctional(
-        new DynamicBoundaryFunctional<T, DESCRIPTOR>(xc, yc, radius, rn, it, zl, clotLoc), lattice.getBoundingBox(),
+        new DynamicBoundaryFunctional<T, DESCRIPTOR>(xc, yc, radius, rn, zl, clotLoc), lattice.getBoundingBox(),
         lattice);
 }
 
 void modifyDynamicBoundaryFromDataProcessor(
-    MultiBlockLattice3D<T, DESCRIPTOR> &lattice, plint xc, plint yc, plint radius, T rn, plint it, plint zl, plint clotLoc)
+    MultiBlockLattice3D<T, DESCRIPTOR> &lattice, plint xc, plint yc, plint radius, T rn, plint zl, plint clotLoc)
 {
     applyProcessingFunctional(
-        new DynamicBoundaryFunctional<T, DESCRIPTOR>(xc, yc, radius, rn, it, zl, clotLoc), lattice.getBoundingBox(),
+        new DynamicBoundaryFunctional<T, DESCRIPTOR>(xc, yc, radius, rn, zl, clotLoc), lattice.getBoundingBox(),
         lattice);
 }
 
@@ -437,24 +402,16 @@ void VtkPalabos(MultiBlockLattice3D<T, DESCRIPTOR>& lattice,
 
 	imageData->SetDimensions(nx, ny, nz);
 
-	//vtkSmartPointer<vtkDoubleArray> VelocityValues =
-        //	vtkSmartPointer<vtkDoubleArray>::New();
-	
+
 	svtkDoubleArray *VelocityValues = svtkDoubleArray::New(); 	 
 	
 	VelocityValues->SetNumberOfComponents(3);
 	VelocityValues->SetNumberOfTuples(nx * ny * nz); 
 
-	//vtkSmartPointer<vtkDoubleArray> VorticityValues =
-          //      vtkSmartPointer<vtkDoubleArray>::New();
-      
 	svtkDoubleArray *VorticityValues = svtkDoubleArray::New();
         
 	VorticityValues->SetNumberOfComponents(3);
         VorticityValues->SetNumberOfTuples(nx * ny * nz);
-
-//	vtkSmartPointer<vtkDoubleArray> VelocityNormValues =
-  //              vtkSmartPointer<vtkDoubleArray>::New();
 
 	svtkDoubleArray *VelocityNormValues = svtkDoubleArray::New();
 	
@@ -490,28 +447,12 @@ void VtkPalabos(MultiBlockLattice3D<T, DESCRIPTOR>& lattice,
     imageData->GetPointData()->AddArray(VelocityNormValues); // add these lines to add Array pb_vel
         VelocityNormValues->SetName("Velocity Norm");
 
-//	vtkSmartPointer<vtkXMLImageDataWriter> writer =
-//		vtkSmartPointer<vtkXMLImageDataWriter>::New();
-
-//	char filename[64];
-//      sprintf (filename, "VtkDataStruc%d.vti", iter);
-
-//	writer->SetInputData(imageData);
-//	writer->SetFileName(filename);
-//	writer->Write();
 }
 
 
 int main(int argc, char* argv[]) {
     plbInit(&argc, &argv);
     global::directories().setOutputDir("./tmp/");
-    
-/*
-    if (argc != 2) {
-        pcout << "Error the parameters are wrong. The structure must be :\n";
-        pcout << "1 : N\n";
-        exit(1);
-    }*/
 
     //const plint N = atoi(argv[1]);
     const plint N = 1;// atoi(argv[1]);
@@ -522,20 +463,10 @@ int main(int argc, char* argv[]) {
     const int nx = 40;
     const int ny = 40;
     const int nz = 80;
-    //using namespace opts;
 
     char* config_file = argv[4];
     string cfg_file(config_file);
-    // std::cout << "input file is " << cfg_file << std::endl;
     Bridge::Initialize(global::mpi().getGlobalCommunicator(), cfg_file); // replaced with MPI_COMM_WORLD 
-    
-    // Bridge::Initialize(MPI_COMM_WORLD, config_file);
-    /*Options ops(argc, argv);
-    ops
-    #ifdef ENABLE_SENSEI
-    >> Option('f', "config", config_file, "Sensei analysis configuration xml (required)")
-    #endif
-    */
     IncomprFlowParam<T> parameters(
             uMax,
             Re,
@@ -580,33 +511,7 @@ int main(int argc, char* argv[]) {
                new DYNAMICS );
     
     
-    //********************************************* XXX Possible alternative for passing local extents to computeVelocity function
-    /*
-    ThreadAttribution const & orgThreadAttribution = management.getThreadAttribution();
-    std::vector<plint> localBlocks = blockStructure.getLocalBlocks(orgThreadAttribution);
-    std::map<plint, Box3D> bulksMap = blockStructure.getBulks();
-    std::vector<Box3D> bulks;
-    plint blockId;
-    Box3D bulk;
-    auto it=bulksMap.begin();
-    cout << " bulkSmap size " << bulksMap.size() << endl;
-    for(;it!=bulksMap.end();++it)
-    {
-        bulk = it->second;
-        blockId = it->first;
-        cout<<"block id= " << blockId<< " proc " << myrank <<" bulk: Nx " << bulk.getNx() << " Ny " << bulk.getNy() << " Nz " << bulk.getNz() << endl;
-    }
-    */
-    //**********************************************
-    
-    //Cell<T,DESCRIPTOR> &cell = lattice.get(550,5500,550);
     pcout<<"dx "<<parameters.getDeltaX()<<" dt  "<<parameters.getDeltaT()<<" tau "<<parameters.getTau()<<endl;
-    //pcout<<"51 works"<<endl;
-
-    /*
-    MultiBlockLattice3D<T, DESCRIPTOR> lattice (
-        parameters.getNx(), parameters.getNy(), parameters.getNz(), 
-        new DYNAMICS );*/
 
     // Use periodic boundary conditions.
     lattice.periodicity().toggle(2,true);
@@ -641,10 +546,7 @@ int main(int argc, char* argv[]) {
     }
 
     long time = 0; 
- 
-    // for (plint iT=0;iT<4e3;iT++){
-    //     lattice.collideAndStream();
-    // }
+
     T timeduration = T();
     global::timer("mainloop").start();
     plint nlocal;
@@ -654,18 +556,12 @@ int main(int argc, char* argv[]) {
     double **x;
    
     int **anglelist;
-    // Array<double,3> center(0.,0.,0.);
-    //  std::vector<std::double> center;
 
     plint myrank = global::mpi().getRank();
     MultiTensorField3D<T,3> vel(lattice);
     MultiTensorField3D<double, 3> vort(lattice);
     MultiScalarField3D<double> velNorm(lattice);
 
-    //TensorField3D<T,3> velocityArray = vel.getComponent(myrank);
-    //TensorField3D<T,3> vorticityArray = vort.getComponent(myrank);
-    //ScalarField3D<T> velocityNormArray = velNorm.getComponent(myrank);
-    int test2 = 1;
     int t_count = 0;
     float t = 0.;
     std::stringstream fixDepositString;
@@ -676,10 +572,7 @@ int main(int argc, char* argv[]) {
     int catalystCalls = 0;
     int numPoints = 0;
     int fixId = 0; // fix id for lammps fix deposit command
-    std::vector<vector<double>> oldPt;
-    oldPt.resize(3);    
   
-
     for (plint iT=0; iT<maxT; ++iT) {
         
         wrapper.execCommand("run 1 pre no post no");
@@ -693,7 +586,6 @@ int main(int argc, char* argv[]) {
         anglelist = wrapper.lmp->neighbor->anglelist;
         
 
-        //*************************************
         vel = *computeVelocity(lattice,lattice.getBoundingBox());
         vort = *computeVorticity(vel);
         velNorm = *computeVelocityNorm(lattice,lattice.getBoundingBox());
@@ -703,11 +595,7 @@ int main(int argc, char* argv[]) {
       	ScalarField3D<T> velocityNormArray = velNorm.getComponent(myrank);
       
         Box3D domain = Box3D(localdomain[myrank][0]-envelopeWidth,localdomain[myrank][1]+envelopeWidth,localdomain[myrank][2]-envelopeWidth,localdomain[myrank][3]+envelopeWidth,localdomain[myrank][4]-envelopeWidth,localdomain[myrank][5]+envelopeWidth);
-        //*************************************
-        
-        //cout<<"Rank: " << myrank <<" Vorticity Extents: " <<vorticityArray.getNx() << " " << vorticityArray.getNy() << " " << vorticityArray.getNz()<<endl;
-        //cout<<"Rank: " << myrank <<" Velocity Extents: " <<velocityArray.getNx() << " " << velocityArray.getNy() << " " << velocityArray.getNz()<<endl;
-        //cout<<"Rank: " << myrank <<" Velocity Norm Extents: " <<velocityNormArray.getNx() << " " << velocityNormArray.getNy() << " " << velocityNormArray.getNz()<<endl;
+
         if (iT%(iSave) ==0 && iT >0){
         Bridge::SetData(x, ntimestep, nghost ,nlocal, anglelist, nanglelist,
 			            velocityArray, vorticityArray, velocityNormArray, 
@@ -737,11 +625,6 @@ int main(int argc, char* argv[]) {
                 // broadcast number of points to all ranks
                 MPI_Bcast(&numPoints, 1, MPI_INT, 0, global::mpi().getGlobalCommunicator());
 
-                // resize oldPt vector to number of points
-                oldPt[0].resize(numPoints);
-                oldPt[1].resize(numPoints);
-                oldPt[2].resize(numPoints);
-
                 // iterate through all points
                 for(int i = 0; i < numPoints; i++)
                 {
@@ -760,33 +643,17 @@ int main(int argc, char* argv[]) {
                     int rbczone_zmin = pt[2] - 5;
                     int rbczone_zmax = pt[2] + 5;           
 
-                    // if(catalystCalls > 0) // if this is not the first time through the loop
-                    // {
-                        // if(pt[0] != oldPt[0][i] || pt[1] != oldPt[1][i] || pt[2] != oldPt[2][i]) // if the point has moved
-                    
-                        // delete the old region
-                        // regionDeleteString << "region "<< rbcZoneID.str() <<" delete" << endl;
-                        // wrapper.execCommand(regionDeleteString);
-                    
-                        // define a new region around the new point
                     rbcZoneID.str("");
                     rbcZoneID << "RBC_zone_" << i << "_" << catalystCalls;
                     rbcZoneString << "region "<< rbcZoneID.str() << " block " << rbczone_xmin << " " << rbczone_xmax << " " << rbczone_ymin << " " << rbczone_ymax << " " << rbczone_zmin << " " << rbczone_zmax << " side in";
                     wrapper.execCommand(rbcZoneString);
                     pcout << " ------ rbc zone string: " << rbcZoneString.str() << endl;
-                    // }
+
                     fixId = 3+i; // need to have 3+i here because the fix id needs to be unique for each point
 
                     fixDepositString << "fix " << fixId <<" cells deposit 1 0 1 12345 mol singleRBC region " << rbcZoneID.str() << " id max gaussian "<<pt[0]<<" "<<pt[1]<<" "<< pt[2] << " 10 near 1";
-                    // this will only work if the fix id is unique for each point
-                    // fixDepositString << "fix 3 cells deposit 1 0 1 12345 mol singleRBC region " << rbcZoneID.str() << " id max gaussian "<<pt[0]<<" "<<pt[1]<<" "<< pt[2] << " 10 near 1";
                     wrapper.execCommand(fixDepositString);
-                    pcout << "fix deposit string: " << fixDepositString.str() << endl;
-       
-                    // store old point coordinates
-                    oldPt[0][i] = pt[0];
-                    oldPt[1][i] = pt[1];
-                    oldPt[2][i] = pt[2];
+                    // pcout << "fix deposit string: " << fixDepositString.str() << endl;
 
                     // increment catalystCalls to keep track of how many times through the loop
                     // to clear the old region before creating a new region on the next iteration
@@ -807,9 +674,7 @@ int main(int argc, char* argv[]) {
             // succesful iteration
             pcout << "iteration: " << iT << " is successful"<< endl;
         }
-        // deposits a single molecule into the domain through use of fix deposit:
-        
-
+  
         // Clear and spread fluid force
         setExternalVector(lattice,lattice.getBoundingBox(),DESCRIPTOR<T>::ExternalField::forceBeginsAt,force);
         ////------------ classical ibm coupling-------------//
