@@ -351,7 +351,7 @@ int main(int argc, char* argv[]) {
             40.,        // ly
             80.         // lz
     );
-    const T maxT = 100;//6.6e4; //(T)0.01;
+    const T maxT = 1000;//6.6e4; //(T)0.01;
     plint iSave  = 1;//2000;//10;
     plint iCheck = 1000*iSave;
     writeLogFile(parameters, "3D square Poiseuille");
@@ -395,7 +395,7 @@ int main(int argc, char* argv[]) {
     // Loop over main time iteration.
     util::ValueTracer<T> converge(parameters.getLatticeU(),parameters.getResolution(),1.0e-3);
       //coupling between lammps and palabos
-        Array<T,3> force(0,0.,1e-6);
+        Array<T,3> force(0,0.,1e-7);
         setExternalVector(lattice,lattice.getBoundingBox(),DESCRIPTOR<T>::ExternalField::forceBeginsAt,force);     
    
     plint xc,yc,radius, iterationCAS, zLength;
@@ -404,7 +404,7 @@ int main(int argc, char* argv[]) {
     yc = 20; // Y center
     radius = 20; // radius
     T radiusNorm = radius/maxT; // double radius/max iterations
-    iterationCAS = 10; // iterations for collideAndStream in the loop 
+    iterationCAS = 200; // iterations for collideAndStream in the loop 
     zLength = parameters.getNz(); // because domain.z0 gives local value pass this instead.  
     
     createDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, 0, zLength); // added by NT 7/18/2022
@@ -425,18 +425,18 @@ int main(int argc, char* argv[]) {
             saveBinaryBlock(lattice,"checkpoint.dat");
         }
         // lammps to calculate force
-        //wrapper.execCommand("run 1 pre no post no");
+        wrapper.execCommand("run 1 pre no post no");
         // Clear and spread fluid force
-        createDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, iT, zLength);
+        // createDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, iT, zLength);
         ////-----classical ibm coupling-------------//
-        //spreadForce3D(lattice,wrapper);
+        spreadForce3D(lattice,wrapper);
         ////// Lattice Boltzmann iteration step.
-        for(int iteration=0; iteration<iterationCAS; iteration++){
+        // for(int iteration=0; iteration<iterationCAS; iteration++){
             lattice.collideAndStream();
-        }
+        // }
         // lattice.collideAndStream();
         ////// Interpolate and update solid position
-        //interpolateVelocity3D(lattice,wrapper);
+        interpolateVelocity3D(lattice,wrapper);
         //-----force FSI ibm coupling-------------//
         //forceCoupling3D(lattice,wrapper);
         //lattice.collideAndStream();

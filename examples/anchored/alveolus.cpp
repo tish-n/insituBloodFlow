@@ -254,73 +254,162 @@ void squarePoiseuilleSetup( MultiBlockLattice3D<T,DESCRIPTOR>& lattice,
                             IncomprFlowParam<T> const& parameters,
                             OnLatticeBoundaryCondition3D<T,DESCRIPTOR>& boundaryCondition )
 {
+   
+    const plint nx = parameters.getNx();
+    const plint ny = parameters.getNy();
+    const plint nz = parameters.getNz();
+    // y 
+    Box3D top    = Box3D(0,    nx-1, ny-1, ny-1, 0, nz-1); 
+    Box3D bottom = Box3D(0,    nx-1, 0,    0,    0, nz-1); 
+    
+    // z
+    Box3D inlet  = Box3D(0,    nx-1, 1,    ny-2, 0,    0);
+    Box3D outlet = Box3D(0,    nx-1, 1,    ny-2, nz-1, nz-1);
+    
+    //x
+    Box3D left   = Box3D(0,    0,    1,    ny-2, 1, nz-2);
+    Box3D right  = Box3D(nx-1, nx-1, 1,    ny-2, 1, nz-2);
+
+    // shear flow top bottom surface
+
+    // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, inlet, boundary::outflow );
+    // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, outlet, boundary::outflow );
+
+    // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, top );
+    // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, bottom );
+    
+    // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, left, boundary::outflow );
+    // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, right, boundary::outflow );
+    
+    // setBoundaryVelocity(lattice, top, ShearTopVelocity<T>(parameters,NMAX));
+    // setBoundaryVelocity(lattice, bottom, ShearBottomVelocity<T>(parameters,NMAX));
+    
+    // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, inlet, boundary::outflow );
+    // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, outlet, boundary::outflow );
+
+    // channel flow
+    // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, inlet);
+    // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, outlet);
+    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, top );
+    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, bottom );
+    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, left );
+    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, right );
+    
+    // setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocity<T>(parameters, NMAX));
+    // setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocity<T>(parameters, NMAX));
+    
+    // setBoundaryVelocity(lattice, inlet, Array<T,3>((T)0.0,(T)0.0,(T)0.05)); // .5 in z direction XXX added by Nazariy 7/19
+    // setBoundaryVelocity(lattice, outlet, Array<T,3>((T)0.0,(T)0.0,(T)0.05)); // .5 in z direction XXX added by Nazariy 7/19
+    setBoundaryVelocity(lattice, top, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
+    setBoundaryVelocity(lattice, bottom, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
+    setBoundaryVelocity(lattice, left, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
+    setBoundaryVelocity(lattice, right, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
+    
+
+    // initializeAtEquilibrium(lattice, lattice.getBoundingBox(), SquarePoiseuilleDensityAndVelocity<T>(parameters, NMAX));
+    initializeAtEquilibrium(lattice, lattice.getBoundingBox(),(T)1.0, Array<T,3>(0.0,0.0,0.05));
+
+    lattice.initialize();
+   
+   
+/*   
     const plint nx = parameters.getNx();
     const plint ny = parameters.getNy();
     const plint nz = parameters.getNz();
 
     
-    plint r(10),r2(6),n(8);
-
     Box3D top    = Box3D(0,    nx-1, ny-1, ny-1, 0, nz-1);
     Box3D bottom = Box3D(0,    nx-1, 0,    0,    0, nz-1);
-    
-    Box3D inlet    = Box3D(1,    nx-2, 1,    ny-2, 0,   0);
-    //Box3D outlet = Box3D(0,    nx-1, 0,    ny-1, nz-1, nz-1);
-    Box3D outlet = Box3D(1,    nx-2, 1,    ny-2, nz-1, nz-1);
-    
-    Box3D left   = Box3D(0,    0,    1,    ny-2, 0, nz-1);
-    Box3D right  = Box3D(nx-1, nx-1, 1,    ny-2, 0, nz-1);
-    
-    //-- set velocity boundary--//
-    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, inlet );
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, inlet, boundary::normalOutflow );
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, outlet );
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, outlet, boundary::normalOutflow );
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, top, boundary::normalOutflow );
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, bottom, boundary::normalOutflow );
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, left, boundary::normalOutflow );
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, right, boundary::normalOutflow );
-    
-    // set pressure boundary
-    //boundaryCondition.setPressureConditionOnBlockBoundaries ( lattice, inlet );
-    boundaryCondition.setPressureConditionOnBlockBoundaries ( lattice, outlet );
-    boundaryCondition.setPressureConditionOnBlockBoundaries ( lattice, top );
-    boundaryCondition.setPressureConditionOnBlockBoundaries ( lattice, bottom );
-    boundaryCondition.setPressureConditionOnBlockBoundaries ( lattice, left );
-    boundaryCondition.setPressureConditionOnBlockBoundaries ( lattice, right );
 
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, top );
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, bottom );
     
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, left,boundary::outflow );
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, right,boundary::outflow );
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, left,boundary::freeslip );
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, right,boundary::freeslip );
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, left );
-    //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, right );
-    
-    //setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocity<T>(parameters, NMAX));
-    //setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocity<T>(parameters, NMAX));
-    
-    //setBoundaryDensity(lattice, inlet, 1.004); // 10 mmHg over 1000 um->120 um
-    setBoundaryDensity(lattice, outlet, 1./3.);
-    setBoundaryDensity(lattice, top, 1./3.);
-    setBoundaryDensity(lattice, bottom, 1./3.);
-    setBoundaryDensity(lattice, left, 1./3.);
-    setBoundaryDensity(lattice, right, 1./3.);
-    
-    //setBoundaryVelocity(lattice, inlet, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
-    /*setBoundaryVelocity(lattice, top, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
+    Box3D left   = Box3D(0,    0,    1,    ny-2, 1, nz-2);
+    Box3D right  = Box3D(nx-1, nx-1, 1,    ny-2, 1, nz-2);
+
+    Box3D inlet   = Box3D(0,    nx-1,    1,    ny-1, 0, 0); // added by Nazariy 7/24/2023
+    Box3D outlet  = Box3D(0,    nx-1,    1,    ny-1, nz-5, nz);
+
+    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, top );
+    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, bottom );
+    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, left );
+    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, right );
+
+    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, inlet );
+    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, outlet);
+ 
+    setBoundaryVelocity(lattice, top, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
     setBoundaryVelocity(lattice, bottom, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
     setBoundaryVelocity(lattice, left, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
     setBoundaryVelocity(lattice, right, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
-    setBoundaryVelocity(lattice, outlet, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
-*/
-    //initializeAtEquilibrium(lattice, lattice.getBoundingBox(), SquarePoiseuilleDensityAndVelocity<T>(parameters, NMAX));
-    //defineDynamics(lattice, lattice.getBoundingBox(), new WallDomain3D<T>(r,r2,n),new BounceBack<T,DESCRIPTOR>);
-    initializeAtEquilibrium(lattice, lattice.getBoundingBox(), (T)1.0/3., Array<T,3>(0,0,0));
+    
 
-    lattice.initialize();
+    setBoundaryVelocity(lattice, inlet, Array<T,3>((T)0.0,(T)0.0,(T)0.25));
+    setBoundaryVelocity(lattice, outlet, Array<T,3>((T)0.0,(T)0.0,(T)0.25));
+
+    //initializeAtEquilibrium(lattice, lattice.getBoundingBox(), SquarePoiseuilleDensityAndVelocity<T>(parameters, NMAX));
+    initializeAtEquilibrium(lattice, lattice.getBoundingBox(),(T)1.0, Array<T,3>(0.0,0.0,0.0));
+
+//     plint r(10),r2(6),n(8);
+
+//     Box3D top    = Box3D(0,    nx-1, ny-1, ny-1, 0, nz-1);
+//     Box3D bottom = Box3D(0,    nx-1, 0,    0,    0, nz-1);
+    
+//     Box3D inlet    = Box3D(1,    nx-2, 1,    ny-2, 0,   0);
+//     //Box3D outlet = Box3D(0,    nx-1, 0,    ny-1, nz-1, nz-1);
+//     Box3D outlet = Box3D(1,    nx-2, 1,    ny-2, nz-1, nz-1);
+    
+//     Box3D left   = Box3D(0,    0,    1,    ny-2, 0, nz-1);
+//     Box3D right  = Box3D(nx-1, nx-1, 1,    ny-2, 0, nz-1);
+    
+//     //-- set velocity boundary--//
+//     boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, inlet );
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, inlet, boundary::normalOutflow );
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, outlet );
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, outlet, boundary::normalOutflow );
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, top, boundary::normalOutflow );
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, bottom, boundary::normalOutflow );
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, left, boundary::normalOutflow );
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, right, boundary::normalOutflow );
+    
+//     // set pressure boundary
+//     //boundaryCondition.setPressureConditionOnBlockBoundaries ( lattice, inlet );
+//     boundaryCondition.setPressureConditionOnBlockBoundaries ( lattice, outlet );
+//     boundaryCondition.setPressureConditionOnBlockBoundaries ( lattice, top );
+//     boundaryCondition.setPressureConditionOnBlockBoundaries ( lattice, bottom );
+//     boundaryCondition.setPressureConditionOnBlockBoundaries ( lattice, left );
+//     boundaryCondition.setPressureConditionOnBlockBoundaries ( lattice, right );
+
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, top );
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, bottom );
+    
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, left,boundary::outflow );
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, right,boundary::outflow );
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, left,boundary::freeslip );
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, right,boundary::freeslip );
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, left );
+//     //boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, right );
+    
+//     //setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocity<T>(parameters, NMAX));
+//     //setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocity<T>(parameters, NMAX));
+    
+//     //setBoundaryDensity(lattice, inlet, 1.004); // 10 mmHg over 1000 um->120 um
+//     setBoundaryDensity(lattice, outlet, 1./3.);
+//     setBoundaryDensity(lattice, top, 1./3.);
+//     setBoundaryDensity(lattice, bottom, 1./3.);
+//     setBoundaryDensity(lattice, left, 1./3.);
+//     setBoundaryDensity(lattice, right, 1./3.);
+    
+//     //setBoundaryVelocity(lattice, inlet, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
+//     /*setBoundaryVelocity(lattice, top, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
+//     setBoundaryVelocity(lattice, bottom, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
+//     setBoundaryVelocity(lattice, left, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
+//     setBoundaryVelocity(lattice, right, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
+//     setBoundaryVelocity(lattice, outlet, Array<T,3>((T)0.0,(T)0.0,(T)0.0));
+// 
+//     //initializeAtEquilibrium(lattice, lattice.getBoundingBox(), SquarePoiseuilleDensityAndVelocity<T>(parameters, NMAX));
+//     //defineDynamics(lattice, lattice.getBoundingBox(), new WallDomain3D<T>(r,r2,n),new BounceBack<T,DESCRIPTOR>);
+//     initializeAtEquilibrium(lattice, lattice.getBoundingBox(), (T)1.0/3., Array<T,3>(0,0,0));
+
+    lattice.initialize(); */
 }
 
 T computeRMSerror ( MultiBlockLattice3D<T,DESCRIPTOR>& lattice,
@@ -377,9 +466,9 @@ int main(int argc, char* argv[]) {
             uMax,
             Re,
             N,
-            60.,        // lx
-            60.,        // ly
-            80.         // lz
+            40.,        // lx
+            40.,        // ly
+            60.         // lz
     );
     
     const plint nx = parameters.getNx();
@@ -387,8 +476,8 @@ int main(int argc, char* argv[]) {
     const plint nz_s = 0;
     Box3D inlet    = Box3D(1,    nx-2, 1,    ny-2, nz_s,   nz_s);
     
-    const T maxT     =400000;//6.6e4; //(T)0.01;
-    plint iSave = 4000;//10;
+    const T maxT     = 200;//6.6e4; //(T)0.01;
+    plint iSave = 20;//10;
     plint periT = 400000; // periodic time
     plint iniT = atoi(argv[2]);
     plint iCheck = 10*iSave;//10;
@@ -463,16 +552,19 @@ int main(int argc, char* argv[]) {
     //util::ValueTracer<T> converge(parameters.getLatticeU(),parameters.getResolution(),1.0e-3);
       //coupling between lammps and palabos
    // v_max=1/(4*vis)*dp/dx*R^2; 
-    Array<T,3> force(0,0.,0);
-    //force[2]=1.5e-7;// velocity profile die out, 1e-7
-    setExternalVector(lattice,lattice.getBoundingBox(),DESCRIPTOR<T>::ExternalField::forceBeginsAt,force);
+    // Array<T,3> force(0,0.,0.5);
+    // //force[2]=1.5e-7;// velocity profile die out, 1e-7
+    // setExternalVector(lattice,lattice.getBoundingBox(),DESCRIPTOR<T>::ExternalField::forceBeginsAt,force);
+
+    Array<T,3> force(0,0.,1e-6);
+    setExternalVector(lattice,lattice.getBoundingBox(),DESCRIPTOR<T>::ExternalField::forceBeginsAt,force);  
 
     if (iniT > 0){
       loadBinaryBlock(lattice,"checkpoint.dat");
     }else{
-      /*for (plint iT=0;iT<4e3;iT++){
+      for (plint iT=0;iT<1e3;iT++){
           lattice.collideAndStream();
-      }*/
+      }
     }
     T timeduration = T();
     writeVTK(lattice, parameters, 0);
@@ -491,7 +583,7 @@ int main(int argc, char* argv[]) {
         Array<T,3> targetV(0,0,uMax);
         Array<T,3> inletV=getVelocity(targetV, iT, periT);
         //pcout<<"veloicty "<<inletV[0]<<" "<<inletV[1]<<" "<<inletV[2]<<endl;
-        setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center,r,inletV));// velocity is the value for v, inlet is box3d
+        // setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center,r,inletV));// velocity is the value for v, inlet is box3d
         //setBoundaryVelocity(lattice, inlet, inletV);// velocity is the value for v, inlet is box3d
         // lammps to calculate force
         wrapper.execCommand("run 1 pre no post no");

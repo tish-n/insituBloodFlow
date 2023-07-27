@@ -12,4 +12,4 @@ make -j20
 
 cd ..
 
-mpirun -np 20 ./dynamicBoundary in.embolism 1000 10
+mpirun -np 8 ./dynamicBoundary in.lmp4cell 1000 10
