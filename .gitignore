@@ -16,6 +16,8 @@ build/
 dump.*
 *.swp
 tmp/
+test*
+inanbi
 personal.cmake
 rebuildandrun.sh
 *.vtk
