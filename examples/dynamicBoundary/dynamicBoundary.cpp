@@ -466,7 +466,7 @@ int main(int argc, char* argv[]) {
             N,
             40,        // lx
             40,        // ly
-            80         // lz
+            130         // lz
     );
 
     const plint nx = parameters.getNx();
@@ -479,7 +479,7 @@ int main(int argc, char* argv[]) {
     writeLogFile(parameters, "3D square Poiseuille");
     Box3D inlet    = Box3D(1,    nx-2, 1,    ny-2, 0,   0);
     Box3D outlet    = Box3D(1,    nx-2, 1,    ny-2, nz-1,   nz-1);
-    plint r = 14;
+    plint r = 20; // edit this radius!!!!!!!!!!!!!
     Array<T,3> center(20, 20, 1);
 
     LammpsWrapper wrapper(argv,global::mpi().getGlobalCommunicator());
@@ -530,12 +530,13 @@ int main(int argc, char* argv[]) {
 
     xc = 20; // X center 
     yc = 20; // Y center
-    radius = 15; // radius
+    radius = 15; // radius // not this radius, it's one for bounceback nodes edit the other one!!!!!!!!!!!!!!
     T radiusNorm = radius/maxT; // double radius/max iterations
     iterationCAS = 200; // iterations for collideAndStream in the loop 
     zLength = parameters.getNz(); // because domain.z0 gives local value pass this instead.  
 
-    Array<T,3> targetV(0,0,uMax);
+    // Array<T,3> targetV(0,0,uMax);
+    Array<T,3> targetV(0,0,0.000075);
     // Array<T,3> inletV=getVelocity(targetV, iT, periT);
     setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));  
     setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));

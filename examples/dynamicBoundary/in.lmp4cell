@@ -58,7 +58,7 @@ comm_modify cutoff 10
 
 # use fix SRD to push small particles out from inside big ones
 
-timestep	20
+timestep	1
 
 #fix		3 all nve
 #fix 2 cells fcm 1
@@ -86,7 +86,7 @@ group wall id 678	710	712	755	757	782	783	787	788	1173	1265	1266	1364	1365	1366	
 
 # wall ids above are output from MATLAB script for the wall particles generation (manually outputting the ids for the lowest layer of wall particles to constrain them there) 
 group cell type 1
-group cell type 2
+group moving_wall type 2
 #thermo		100
 #run             10000
 
@@ -98,6 +98,7 @@ reset_timestep 0
 #unfix 3
 #timestep 0.02
 fix 1 cell fcm 1
+#fix 1 all fcm 1
 fix 2 wall move linear 0 0 0
 #thermo_modify	temp tbig
 #thermo_modify   lost ignore
