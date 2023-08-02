@@ -102,6 +102,58 @@ T poiseuilleVelocity(plint iX, plint iY, IncomprFlowParam<T> const& parameters, 
     return sum;
 }
 
+
+T poiseuilleVelocity2D(plint iX, plint iY, IncomprFlowParam<T> const& parameters, plint maxN)
+{
+    const T a = parameters.getNx()-1;
+    const T b = parameters.getNy()-1;
+
+    const T x = (T)iX - a / (T)2;
+    const T y = (T)iY - b / (T)2;
+
+    const T uMax = parameters.getLatticeU();
+    T sum = T();
+    sum = uMax*(1-4*y*y/b/b); 
+    return sum;
+}
+
+T poiseuilleVelocityHole2D(plint iX, plint iY, Array<T,3> center, plint r, Array<T,3> inletV)
+{
+    const T a = center[0]; // center of the inlet hole
+    const T b = center[1];
+
+    const T x = (T)iX - a ;
+    const T y = (T)iY - b ;
+
+    //const T uMax = parameters.getLatticeU();
+    T sum = T();
+    T R2 = x*x + y*y;
+    if (R2 <= r*r){
+        sum = inletV[2]*(1-R2/r/r); 
+    }
+    //pcout<<"velocity "<<sum<<endl;
+    return sum;
+}
+
+template <typename T>
+class SquarePoiseuilleVelocityHole {
+public:
+    SquarePoiseuilleVelocityHole(Array<T,3> center_, plint r_, Array<T,3> inletV_)
+        : center(center_), r(r_), inletV(inletV_)
+    { }
+    void operator()(plint iX, plint iY, plint iZ, Array<T,3>& u) const  {
+        u[0] = T();
+        u[1] = T();
+        u[2] = poiseuilleVelocityHole2D(iX, iY, center, r, inletV);
+        //u[2] = poiseuilleVelocity2D(iX, iY, parameters, maxN);
+    }
+private:
+    Array<T,3> inletV;
+    Array<T,3> center;
+    plint r;
+};
+
+
 template <typename T>
 class SquarePoiseuilleDensityAndVelocity {
 public:
@@ -130,7 +182,15 @@ public:
     void operator()(plint iX, plint iY, plint iZ, Array<T,3>& u) const  {
         u[0] = T();
         u[1] = T();
-        u[2] = poiseuilleVelocity(iX, iY, parameters, maxN);
+        int distanceFromCenter = iX*iX+iY*iY;
+        int thisRadius = parameters.getNx()*parameters.getNx()/4;
+        if (distanceFromCenter < thisRadius){
+            u[2] = poiseuilleVelocity(iX, iY, parameters, maxN);
+        }
+        else{
+            u[2] = T();
+        }
+        // u[2] = poiseuilleVelocity(iX, iY, parameters, maxN);
     }
 private:
     IncomprFlowParam<T> parameters;
@@ -171,6 +231,12 @@ private:
     plint maxN;
 };
 
+// Array<T,3> getVelocity(Array<T,3> targetValue, plint iT, plint periT)
+// {
+//     static T pi = std::acos((T)-1);
+
+//     return (targetValue);
+// }
 
 
 void squarePoiseuilleSetup( MultiBlockLattice3D<T,DESCRIPTOR>& lattice,
@@ -210,8 +276,8 @@ void squarePoiseuilleSetup( MultiBlockLattice3D<T,DESCRIPTOR>& lattice,
     // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, outlet, boundary::outflow );
 
     // channel flow
-    // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, inlet);
-    // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, outlet);
+    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, inlet);
+    boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, outlet);
 
     // turning off velocity bcs for now 7/31/23
     // boundaryCondition.setVelocityConditionOnBlockBoundaries ( lattice, top );
@@ -233,7 +299,7 @@ void squarePoiseuilleSetup( MultiBlockLattice3D<T,DESCRIPTOR>& lattice,
     
 
     // initializeAtEquilibrium(lattice, lattice.getBoundingBox(), SquarePoiseuilleDensityAndVelocity<T>(parameters, NMAX));
-    initializeAtEquilibrium(lattice, lattice.getBoundingBox(),(T)1.0, Array<T,3>(0.0,0.0,0.05));
+    initializeAtEquilibrium(lattice, lattice.getBoundingBox(),(T)1.0, Array<T,3>(0.0,0.0,0.0));
 
     lattice.initialize();
 }
@@ -249,75 +315,75 @@ public:
     DynamicBoundaryFunctional(plint xc_, plint yc_, plint radius_, T rn_, plint it_, plint zl_) : xc(xc_), yc(yc_), radius(radius_), rn(rn_), it(it_), zl(zl_) { }
     virtual void process(Box3D domain, BlockLattice3D<T, Descriptor> &lattice)
     {
-        // //BounceBackNodes<T> bbDomain(N, radius);
-        // Dot3D relativeOffset = lattice.getLocation();
-        // for (plint iX = domain.x0; iX <= domain.x1; ++iX) {
-        //     for (plint iY = domain.y0; iY <= domain.y1; ++iY) {
-        //         // for (plint iZ = domain.z0; iZ <= domain.z1; ++iZ) {
-        //         for (plint iZ = domain.z0; iZ <= domain.z1; ++iZ) {
-        //             T dist = (iY + relativeOffset.y - yc)*(iY + relativeOffset.y - yc) + 
-        //                      (iX + relativeOffset.x - xc)*(iX + relativeOffset.x - xc); //XXXX change later - Nazariy
-        //             T xscale = .5 * rn * it;  // scaling factor for x (how wide) replace with a slider later.
-        //             T yscale = .5 * radius * sin(.0314*it);  // scaling factor for y (how close to center) dependent on iteration
-        //             // the representation is y = e ^ (-x^2), but the example is set up in Z direction so here 
-        //             // the x stands for domain in Z i.e. values from Z axis and y stands for value being subtracted from the radius
-        //             int cntZ = (iZ+relativeOffset.z-(zl / 2))/xscale; // position of Z with resepect to center of Z        
-        //             T modRad = yscale * exp(-cntZ*cntZ) + 1; // radius modification parameter
-        //             if (dist > (radius - modRad)*(radius - modRad)) {
-        //                 lattice.attributeDynamics(iX, iY, iZ, new BounceBack<T, DESCRIPTOR>);
-        //             }
-        //             else{
-        //                 lattice.attributeDynamics(iX, iY, iZ, new GuoExternalForceBGKdynamics<T, DESCRIPTOR>(1./0.95));
-        //             }
-        //         }
-        //     }
-        // }
-
         //BounceBackNodes<T> bbDomain(N, radius);
         Dot3D relativeOffset = lattice.getLocation();
-        for (plint iX = domain.x0; iX <= domain.x1; ++iX)
-        {
-            for (plint iY = domain.y0; iY <= domain.y1; ++iY)
-            {
-                // just define bouncebacks for first and last Z layers 
-                // first Z layer 
-                plint iZ = domain.z0;
-                T dist = (iY + relativeOffset.y - yc)*(iY + relativeOffset.y - yc) + 
-                            (iX + relativeOffset.x - xc)*(iX + relativeOffset.x - xc); //XXXX change later - Nazariy
-                T xscale = .5 * rn * it;  // scaling factor for x (how wide) replace with a slider later.
-                T yscale = .5 * radius * sin(.0314*it);  // scaling factor for y (how close to center) dependent on iteration
-                // the representation is y = e ^ (-x^2), but the example is set up in Z direction so here 
-                // the x stands for domain in Z i.e. values from Z axis and y stands for value being subtracted from the radius
-                int cntZ = (iZ+relativeOffset.z-(zl / 2))/xscale; // position of Z with resepect to center of Z        
-                T modRad = yscale * exp(-cntZ*cntZ) + 1; // radius modification parameter
-                if (dist > (radius - modRad)*(radius - modRad))
-                {
-                    lattice.attributeDynamics(iX, iY, iZ, new BounceBack<T, DESCRIPTOR>);
-                }
-                else
-                {
-                    lattice.attributeDynamics(iX, iY, iZ, new GuoExternalForceBGKdynamics<T, DESCRIPTOR>(1./0.95));
-                }
-                // last Z layer 
-                iZ = domain.z1;
-                dist = (iY + relativeOffset.y - yc)*(iY + relativeOffset.y - yc) + 
-                            (iX + relativeOffset.x - xc)*(iX + relativeOffset.x - xc); //XXXX change later - Nazariy
-                xscale = .5 * rn * it;  // scaling factor for x (how wide) replace with a slider later.
-                yscale = .5 * radius * sin(.0314*it);  // scaling factor for y (how close to center) dependent on iteration
-                // the representation is y = e ^ (-x^2), but the example is set up in Z direction so here 
-                // the x stands for domain in Z i.e. values from Z axis and y stands for value being subtracted from the radius
-                cntZ = (iZ+relativeOffset.z-(zl / 2))/xscale; // position of Z with resepect to center of Z        
-                modRad = yscale * exp(-cntZ*cntZ) + 1; // radius modification parameter
-                if (dist > (radius - modRad)*(radius - modRad))
-                {
-                    lattice.attributeDynamics(iX, iY, iZ, new BounceBack<T, DESCRIPTOR>);
-                }
-                else
-                {
-                    lattice.attributeDynamics(iX, iY, iZ, new GuoExternalForceBGKdynamics<T, DESCRIPTOR>(1./0.95));
+        for (plint iX = domain.x0; iX <= domain.x1; ++iX) {
+            for (plint iY = domain.y0; iY <= domain.y1; ++iY) {
+                // for (plint iZ = domain.z0; iZ <= domain.z1; ++iZ) {
+                for (plint iZ = domain.z0; iZ <= domain.z1; ++iZ) {
+                    T dist = (iY + relativeOffset.y - yc)*(iY + relativeOffset.y - yc) + 
+                             (iX + relativeOffset.x - xc)*(iX + relativeOffset.x - xc); //XXXX change later - Nazariy
+                    T xscale = .5 * rn * it;  // scaling factor for x (how wide) replace with a slider later.
+                    T yscale = .5 * radius * sin(.0314*it);  // scaling factor for y (how close to center) dependent on iteration
+                    // the representation is y = e ^ (-x^2), but the example is set up in Z direction so here 
+                    // the x stands for domain in Z i.e. values from Z axis and y stands for value being subtracted from the radius
+                    int cntZ = (iZ+relativeOffset.z-(zl / 2))/xscale; // position of Z with resepect to center of Z        
+                    T modRad = yscale * exp(-cntZ*cntZ) + 1; // radius modification parameter
+                    if (dist > (radius - modRad)*(radius - modRad)) {
+                        lattice.attributeDynamics(iX, iY, iZ, new BounceBack<T, DESCRIPTOR>);
+                    }
+                    else{
+                        lattice.attributeDynamics(iX, iY, iZ, new GuoExternalForceBGKdynamics<T, DESCRIPTOR>(1./0.95));
+                    }
                 }
             }
         }
+
+        // //BounceBackNodes<T> bbDomain(N, radius);
+        // Dot3D relativeOffset = lattice.getLocation();
+        // for (plint iX = domain.x0; iX <= domain.x1; ++iX)
+        // {
+        //     for (plint iY = domain.y0; iY <= domain.y1; ++iY)
+        //     {
+        //         // just define bouncebacks for first and last Z layers 
+        //         // first Z layer 
+        //         plint iZ = domain.z0;
+        //         T dist = (iY + relativeOffset.y - yc)*(iY + relativeOffset.y - yc) + 
+        //                     (iX + relativeOffset.x - xc)*(iX + relativeOffset.x - xc); //XXXX change later - Nazariy
+        //         T xscale = .5 * rn * it;  // scaling factor for x (how wide) replace with a slider later.
+        //         T yscale = .5 * radius * sin(.0314*it);  // scaling factor for y (how close to center) dependent on iteration
+        //         // the representation is y = e ^ (-x^2), but the example is set up in Z direction so here 
+        //         // the x stands for domain in Z i.e. values from Z axis and y stands for value being subtracted from the radius
+        //         int cntZ = (iZ+relativeOffset.z-(zl / 2))/xscale; // position of Z with resepect to center of Z        
+        //         T modRad = yscale * exp(-cntZ*cntZ) + 1; // radius modification parameter
+        //         if (dist > (radius - modRad)*(radius - modRad))
+        //         {
+        //             lattice.attributeDynamics(iX, iY, iZ, new BounceBack<T, DESCRIPTOR>);
+        //         }
+        //         else
+        //         {
+        //             lattice.attributeDynamics(iX, iY, iZ, new GuoExternalForceBGKdynamics<T, DESCRIPTOR>(1./0.95));
+        //         }
+        //         // last Z layer 
+        //         iZ = domain.z1;
+        //         dist = (iY + relativeOffset.y - yc)*(iY + relativeOffset.y - yc) + 
+        //                     (iX + relativeOffset.x - xc)*(iX + relativeOffset.x - xc); //XXXX change later - Nazariy
+        //         xscale = .5 * rn * it;  // scaling factor for x (how wide) replace with a slider later.
+        //         yscale = .5 * radius * sin(.0314*it);  // scaling factor for y (how close to center) dependent on iteration
+        //         // the representation is y = e ^ (-x^2), but the example is set up in Z direction so here 
+        //         // the x stands for domain in Z i.e. values from Z axis and y stands for value being subtracted from the radius
+        //         cntZ = (iZ+relativeOffset.z-(zl / 2))/xscale; // position of Z with resepect to center of Z        
+        //         modRad = yscale * exp(-cntZ*cntZ) + 1; // radius modification parameter
+        //         if (dist > (radius - modRad)*(radius - modRad))
+        //         {
+        //             lattice.attributeDynamics(iX, iY, iZ, new BounceBack<T, DESCRIPTOR>);
+        //         }
+        //         else
+        //         {
+        //             lattice.attributeDynamics(iX, iY, iZ, new GuoExternalForceBGKdynamics<T, DESCRIPTOR>(1./0.95));
+        //         }
+        //     }
+        // }
     }
     virtual void getTypeOfModification(std::vector<modif::ModifT> &modified) const
     {
@@ -402,10 +468,19 @@ int main(int argc, char* argv[]) {
             40,        // ly
             80         // lz
     );
-    const T maxT = 10000;//6.6e4; //(T)0.01;
+
+    const plint nx = parameters.getNx();
+    const plint ny = parameters.getNy();
+    const plint nz = parameters.getNz();
+    const T maxT = 1000;//6.6e4; //(T)0.01;
     plint iSave  = 1;//2000;//10;
     plint iCheck = 1000*iSave;
+    // plint periT = 40000;
     writeLogFile(parameters, "3D square Poiseuille");
+    Box3D inlet    = Box3D(1,    nx-2, 1,    ny-2, 0,   0);
+    Box3D outlet    = Box3D(1,    nx-2, 1,    ny-2, nz-1,   nz-1);
+    plint r = 14;
+    Array<T,3> center(20, 20, 1);
 
     LammpsWrapper wrapper(argv,global::mpi().getGlobalCommunicator());
     char * inlmp = argv[1];
@@ -440,25 +515,31 @@ int main(int argc, char* argv[]) {
 
     OnLatticeBoundaryCondition3D<T,DESCRIPTOR>* boundaryCondition
         = createLocalBoundaryCondition3D<T,DESCRIPTOR>();
+    // OnLatticeBoundaryCondition3D<T,DESCRIPTOR>* boundaryCondition
+    //     = createInterpBoundaryCondition3D<T,DESCRIPTOR>();
 
     squarePoiseuilleSetup(lattice, parameters, *boundaryCondition);
 
     // Loop over main time iteration.
     util::ValueTracer<T> converge(parameters.getLatticeU(),parameters.getResolution(),1.0e-3);
-      //coupling between lammps and palabos
-        Array<T,3> force(0,0,1e-4);
-        setExternalVector(lattice,lattice.getBoundingBox(),DESCRIPTOR<T>::ExternalField::forceBeginsAt,force);     
+    // uncomment to use force BC instead:  
+        // Array<T,3> force(0,0,1e-6);
+        // setExternalVector(lattice,lattice.getBoundingBox(),DESCRIPTOR<T>::ExternalField::forceBeginsAt,force);     
    
     plint xc,yc,radius, iterationCAS, zLength;
 
-    xc = 30; // X center 
-    yc = 30; // Y center
-    radius = 10; // radius
+    xc = 20; // X center 
+    yc = 20; // Y center
+    radius = 15; // radius
     T radiusNorm = radius/maxT; // double radius/max iterations
     iterationCAS = 200; // iterations for collideAndStream in the loop 
     zLength = parameters.getNz(); // because domain.z0 gives local value pass this instead.  
-    
-    createDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, 0, zLength); // added by NT 7/18/2022
+
+    Array<T,3> targetV(0,0,uMax);
+    // Array<T,3> inletV=getVelocity(targetV, iT, periT);
+    setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));  
+    setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));
+    // createDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, 0, zLength); // added by NT 7/18/2022
     for (plint iT=0;iT<6e3;iT++){
         lattice.collideAndStream();
     }
@@ -471,7 +552,8 @@ int main(int argc, char* argv[]) {
             pcout<<"Saving VTK file..."<<endl;
             writeVTK(lattice, parameters, iT);
         }
-
+        setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));  
+        setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));
         // lammps to calculate force
         wrapper.execCommand("run 1 pre no post no");
         // Clear and spread fluid force
