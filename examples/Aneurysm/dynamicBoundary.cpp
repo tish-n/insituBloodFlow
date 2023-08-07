@@ -466,22 +466,22 @@ int main(int argc, char* argv[]) {
             N,
             100,        // lx
             75,        // ly
-            110         // lz
+            130         // lz
     );
 
     const plint nx = parameters.getNx();
     const plint ny = parameters.getNy();
     const plint nz = parameters.getNz();
-    const T maxT = 1000;//6.6e4; //(T)0.01;
-    plint iSave  = 1;//2000;//10;
+    const T maxT = 10000;//6.6e4; //(T)0.01;
+    plint iSave  = 100;//2000;//10;
     plint iCheck = 1000*iSave;
     // plint periT = 40000;
     writeLogFile(parameters, "3D square Poiseuille");
     Box3D inlet    = Box3D(1,    nx-2, 1,    ny-2, 0,   0);
     Box3D outlet    = Box3D(1,    nx-2, 1,    ny-2, nz-1,   nz-1);
     plint r = 14; // edit this radius!!!!!!!!!!!!!
-    Array<T,3> center(20, 20, 1);
-
+    Array<T,3> center_inlet(77, 56, 1);
+    Array<T,3> center_outlet(80, 56, 130);
     LammpsWrapper wrapper(argv,global::mpi().getGlobalCommunicator());
     char * inlmp = argv[1];
     wrapper.execFile(inlmp);
@@ -538,12 +538,12 @@ int main(int argc, char* argv[]) {
     Array<T,3> targetV(0,0,uMax);
     // Array<T,3> targetV(0,0,0.075);
     // Array<T,3> inletV=getVelocity(targetV, iT, periT);
-    Array<T,3> center(20, 20, 1);
     // Array<T,3> center(20, 20, 1);
-    setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));  
-    setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));
+    // Array<T,3> center(20, 20, 1);
+    setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center_inlet,r,targetV));  
+    setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center_outlet,r,targetV));
     // createDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, 0, zLength); // added by NT 7/18/2022
-    for (plint iT=0;iT<6e3;iT++){
+    for (plint iT=0;iT<2e3;iT++){
         lattice.collideAndStream();
     }
  //           writeVTK(lattice, parameters, 4e3);
@@ -555,8 +555,8 @@ int main(int argc, char* argv[]) {
             pcout<<"Saving VTK file..."<<endl;
             writeVTK(lattice, parameters, iT);
         }
-        setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));  
-        setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));
+        setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center_inlet,r,targetV));  
+        setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center_outlet,r,targetV));
         // lammps to calculate force
         wrapper.execCommand("run 1 pre no post no");
         // Clear and spread fluid force
