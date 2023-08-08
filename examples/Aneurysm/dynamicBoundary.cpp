@@ -472,16 +472,16 @@ int main(int argc, char* argv[]) {
     const plint nx = parameters.getNx();
     const plint ny = parameters.getNy();
     const plint nz = parameters.getNz();
-    const T maxT = 10000;//6.6e4; //(T)0.01;
-    plint iSave  = 100;//2000;//10;
+    const T maxT = 1000;//6.6e4; //(T)0.01;
+    plint iSave  = 10;//2000;//10;
     plint iCheck = 1000*iSave;
     // plint periT = 40000;
     writeLogFile(parameters, "3D square Poiseuille");
     Box3D inlet    = Box3D(1,    nx-2, 1,    ny-2, 0,   0);
     Box3D outlet    = Box3D(1,    nx-2, 1,    ny-2, nz-1,   nz-1);
     plint r = 14; // edit this radius!!!!!!!!!!!!!
-    Array<T,3> center_inlet(77, 56, 1);
-    Array<T,3> center_outlet(80, 56, 130);
+    Array<T,3> center_inlet(79, 56, 1);
+    Array<T,3> center_outlet(80, 56, 1);
     LammpsWrapper wrapper(argv,global::mpi().getGlobalCommunicator());
     char * inlmp = argv[1];
     wrapper.execFile(inlmp);
@@ -532,21 +532,25 @@ int main(int argc, char* argv[]) {
     yc = 20; // Y center
     radius = 15; // radius // not this radius, it's one for bounceback nodes edit the other one!!!!!!!!!!!!!!
     T radiusNorm = radius/maxT; // double radius/max iterations
-    iterationCAS = 200; // iterations for collideAndStream in the loop 
+    iterationCAS = 20; // iterations for collideAndStream in the loop 
     zLength = parameters.getNz(); // because domain.z0 gives local value pass this instead.  
 
-    Array<T,3> targetV(0,0,uMax);
+    Array<T,3> targetV(0,0,uMax/8);
     // Array<T,3> targetV(0,0,0.075);
     // Array<T,3> inletV=getVelocity(targetV, iT, periT);
     // Array<T,3> center(20, 20, 1);
     // Array<T,3> center(20, 20, 1);
+    // wrapper.execCommand("run 1 pre no post no");
     setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center_inlet,r,targetV));  
     setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center_outlet,r,targetV));
     // createDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, 0, zLength); // added by NT 7/18/2022
-    for (plint iT=0;iT<2e3;iT++){
+    for (plint iT=0;iT<3e3;iT++){
         lattice.collideAndStream();
     }
- //           writeVTK(lattice, parameters, 4e3);
+    // wrapper.execCommand("run 1 pre no post no");
+    // wrapper.execCommand("dump 1 all xyz 1 dump.rbc.xyz");
+    // wrapper.execCommand("dump_modify 1 sort id");
+    // writeVTK(lattice, parameters, 4e3);
     // T timeduration = T();
     // global::timer("mainloop").start();
     for (plint iT=0; iT<=maxT; ++iT) {
@@ -557,6 +561,9 @@ int main(int argc, char* argv[]) {
         }
         setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center_inlet,r,targetV));  
         setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center_outlet,r,targetV));
+        if (iT>(abs(maxT*.5)+1)){
+           wrapper.execCommand("fix 1 all fcm 1");
+        }
         // lammps to calculate force
         wrapper.execCommand("run 1 pre no post no");
         // Clear and spread fluid force
