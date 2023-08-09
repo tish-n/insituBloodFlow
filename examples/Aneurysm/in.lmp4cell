@@ -102,20 +102,21 @@ reset_timestep 0
 #unfix 1
 #unfix 3
 #timestep 0.02
-fix 1 deformable_wall fcm 1
+fix 1 all nve 1
+fix 2 rigid_wall move linear NULL NULL 0
+# fix 3 cell fcm 1
 # fix 2 deformable_wall move linear 0 0 0
 # fix 1 all fcm 1
 # fix 2 rigid_wall fcm 1
 # fix 2 deformable_wall fcm 1
-fix 3 rigid_wall move linear NULL NULL 0
 #thermo_modify	temp tbig
 #thermo_modify   lost ignore
 # reset (temp) defined in thermo_style as (tbig)
 #thermo		100
 #run             1000000
 # output thermodynamic infor every 100 timesteps
-# dump            1 all xyz 10 dump.rbc.xyz
-dump            1 deformable_wall xyz 10 dump.rbc.xyz
+dump            1 all xyz 100 dump.rbc.xyz
+# dump            1 deformable_wall xyz 10 dump.rbc.xyz
 dump_modify 1 sort id
 # dump           2 all custom 4000 dump.rbc.force id fx fy fz
 # dump           3 all custom 4000 dump.rbc.vel id vx vy vz
