@@ -472,8 +472,8 @@ int main(int argc, char* argv[]) {
     const plint nx = parameters.getNx();
     const plint ny = parameters.getNy();
     const plint nz = parameters.getNz();
-    const T maxT = 10000;//6.6e4; //(T)0.01;
-    plint iSave  = 100;//2000;//10;
+    const T maxT = 100;//6.6e4; //(T)0.01;
+    plint iSave  = 1;//2000;//10;
     plint iCheck = 1000*iSave;
     // plint periT = 40000;
     writeLogFile(parameters, "3D square Poiseuille");
@@ -534,7 +534,7 @@ int main(int argc, char* argv[]) {
     iterationCAS = 20; // iterations for collideAndStream in the loop 
     zLength = parameters.getNz(); // because domain.z0 gives local value pass this instead.  
 
-    Array<T,3> targetV(0,0,1.5e-3);
+    Array<T,3> targetV(0,0,1.5e-6);
     // Array<T,3> targetV(0,0,0.075);
     // Array<T,3> inletV=getVelocity(targetV, iT, periT);
     // Array<T,3> center(20, 20, 1);
@@ -543,6 +543,7 @@ int main(int argc, char* argv[]) {
     setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center_inlet,r,targetV));  
     setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center_outlet,r,targetV));
     // createDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, 0, zLength); // added by NT 7/18/2022
+    
     plint prelim = 1e3;
     pcout << "preliminary iterations to reach steady state:" << endl;
     for (plint iT=0;iT<prelim;iT++){
@@ -563,17 +564,22 @@ int main(int argc, char* argv[]) {
         }
         lattice.collideAndStream();
     }
+    /**/
     // writeVTK(lattice, parameters, 4e3);
     // T timeduration = T();
     // global::timer("mainloop").start();
     for (plint iT=0; iT<=maxT; ++iT) {
     //for (plint iT=0; iT<2; ++iT) {
+        if (iT ==0){
+            pcout<<"Saving VTK file..."<<endl;
+            writeVTK(lattice, parameters, iT);
+        }
         if (iT%iSave ==0 && iT >0){
             pcout<<"Saving VTK file..."<<endl;
             writeVTK(lattice, parameters, iT);
         }
         setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center_inlet,r,targetV));  
-        setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center_outlet,r,targetV));
+        // setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center_outlet,r,targetV));
         // if (iT>(abs(maxT*.5)+1)){
         //    wrapper.execCommand("fix 3 cell fcm 1");
         // }

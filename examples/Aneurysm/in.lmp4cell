@@ -25,7 +25,7 @@ boundary 	f f f		# x periodic y fix z periodic
 bond_style    wlc/pow 
 angle_style     rbc
 dihedral_style  bend
-read_data       in.rude
+read_data       in.rude_all_off
 # morse parameters: E=D0[exp(-2a(r-r0))-2exp(-a(r-r0))]
 # D0, a, r0, rc(optional)
 #pair_style morse 3
@@ -115,7 +115,7 @@ fix 2 rigid_wall move linear NULL NULL 0
 #thermo		100
 #run             1000000
 # output thermodynamic infor every 100 timesteps
-dump            1 all xyz 100 dump.rbc.xyz
+dump            1 all xyz 1 dump.rbc.xyz
 # dump            1 deformable_wall xyz 10 dump.rbc.xyz
 dump_modify 1 sort id
 # dump           2 all custom 4000 dump.rbc.force id fx fy fz
