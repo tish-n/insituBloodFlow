@@ -31,6 +31,7 @@ The paths listed in the file will need to be changed to reflect one's personnal 
 
 9. This is a list of preliminary dependencies that are needed to successfully run the project:  
 
+```bash
    sudo apt-get update
    sudo apt-get install -y \
    git \
@@ -46,3 +47,4 @@ The paths listed in the file will need to be changed to reflect one's personnal 
    libosmesa6-dev \
    libgl1-mesa-dev \
    libtbb-dev
+```
