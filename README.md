@@ -28,3 +28,21 @@ in the README file for each example. NOTE: Training example uses the same files 
 
 8. sites (directory) : cooley.cmake is basically a bash file called when using the cmake command on Cooley (listed in embolism's README). 
 The paths listed in the file will need to be changed to reflect one's personnal paths. 
+
+9. This is a list of preliminary dependencies that are needed to successfully run the project:  
+
+   sudo apt-get update
+   sudo apt-get install -y \
+   git \
+   build-essential \
+   autoconf \
+   libtool \
+   libmpich-dev \
+   libssl-dev \
+   wget \
+   pkg-config \
+   python3-dev \
+   python3-numpy \
+   libosmesa6-dev \
+   libgl1-mesa-dev \
+   libtbb-dev
