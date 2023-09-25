@@ -58,6 +58,8 @@ examples/bidirectionalSingleCell/CMakeLists.txt
 setup3.sh
 setup2.sh
 setup.sh
+mpiserver.sh
+server.sh
 examples/bidirectionalSingleCell/in.rbcmolecule
 examples/bidirectionalSingleCell/in.deposit
 
