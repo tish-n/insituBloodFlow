@@ -6,7 +6,7 @@ atom_style	molecular
 #atom_style	atomic
 atom_modify	first cells	# treat big as first group atom list
 dimension	3
-boundary 	f f f		# x periodic y fix z periodic
+boundary 	f f p		# x periodic y fix z periodic
 #define simulation box
 # lattice		sc 5.0 # reduced density: factor^2=1/0.4
 # region		box block 0 100 0 100 0 100 units lattice
@@ -25,7 +25,7 @@ boundary 	f f f		# x periodic y fix z periodic
 bond_style    wlc/pow 
 angle_style     rbc
 dihedral_style  bend
-read_data       in.rude_all_off
+read_data       in.rude
 # morse parameters: E=D0[exp(-2a(r-r0))-2exp(-a(r-r0))]
 # D0, a, r0, rc(optional)
 #pair_style morse 3
@@ -58,7 +58,7 @@ comm_modify cutoff 10
 
 # use fix SRD to push small particles out from inside big ones
 
-timestep	1
+timestep	5
 
 #fix		3 all nve
 #fix 2 cells fcm 1
@@ -87,7 +87,7 @@ timestep	1
 # wall ids above are output from MATLAB script for the wall particles generation (manually outputting the ids for the lowest layer of wall particles to constrain them there) 
 group cell type 1
 group deformable_wall type 2
-group deformable_wall type 3
+# group deformable_wall type 3
 group rigid_wall type 3
 
 # group cell type 2
@@ -102,10 +102,11 @@ reset_timestep 0
 #unfix 1
 #unfix 3
 #timestep 0.02
-fix 1 all nve 1
-fix 2 rigid_wall move linear NULL NULL 0
+fix 1 deformable_wall nve 1
+# fix 1 all fcm 1
+# fix 2 rigid_wall move linear NULL NULL 0
 # fix 3 cell fcm 1
-# fix 2 deformable_wall move linear 0 0 0
+# fix 2 rigid_wall move linear 0 0 0
 # fix 1 all fcm 1
 # fix 2 rigid_wall fcm 1
 # fix 2 deformable_wall fcm 1
@@ -117,7 +118,7 @@ fix 2 rigid_wall move linear NULL NULL 0
 # output thermodynamic infor every 100 timesteps
 dump            1 all xyz 1 dump.rbc.xyz
 # dump            1 deformable_wall xyz 10 dump.rbc.xyz
-dump_modify 1 sort id
+dump_modify 1 sort id  # modifies the output of dump 1 to be sorted by id
 # dump           2 all custom 4000 dump.rbc.force id fx fy fz
 # dump           3 all custom 4000 dump.rbc.vel id vx vy vz
 # dump_modify 2 sort id
