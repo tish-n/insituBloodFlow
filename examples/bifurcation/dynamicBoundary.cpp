@@ -135,6 +135,25 @@ T poiseuilleVelocityHole2D(plint iX, plint iY, Array<T,3> center, plint r, Array
     return sum;
 }
 
+T poiseuilleVelocityHole2D(plint iX, plint iY, std::vector<Array<T,3>> centers, std::vector<plint> rs, vector<Array<T,3>> inletV)
+{
+    T sum = T();
+    for (int i = 0; i < centers.size(); i++){
+        const T a = centers[i][0]; // center of the inlet hole
+        const T b = centers[i][1];
+
+        const T x = (T)iX - a ;
+        const T y = (T)iY - b ;
+
+        //const T uMax = parameters.getLatticeU();
+        T R2 = x*x + y*y;
+        if (R2 <= rs[i]*rs[i]){
+            sum += inletV[i][2]*(1-R2/rs[i]/rs[i]); 
+        }
+    }
+    //pcout<<"velocity "<<sum<<endl;
+    return sum;
+}
 template <typename T>
 class SquarePoiseuilleVelocityHole {
 public:
@@ -153,6 +172,26 @@ private:
     plint r;
 };
 
+// SquarePoiseuilleVelocityHole for multiple centers and radii passed as vectors
+template <typename T>
+class MultipleSquarePoiseuilleVelocityHoles {
+public:
+    MultipleSquarePoiseuilleVelocityHoles(std::vector<Array<T,3>> centers_, std::vector<plint> rs_, vector<Array<T,3>> inletV_)
+        : centers(centers_), rs(rs_), inletV(inletV_)
+    { 
+        assert(centers.size() == rs.size()); // Ensure the sizes match
+    }
+    void operator()(plint iX, plint iY, plint iZ, Array<T,3>& u) const  {
+        u[0] = T();
+        u[1] = T();
+        u[2] = poiseuilleVelocityHole2D(iX, iY, centers, rs, inletV);
+
+    }
+private:
+    std::vector<Array<T,3>> inletV;
+    std::vector<Array<T,3>> centers;
+    std::vector<plint> rs;
+};
 
 template <typename T>
 class SquarePoiseuilleDensityAndVelocity {
@@ -472,15 +511,31 @@ int main(int argc, char* argv[]) {
     const plint nx = parameters.getNx();
     const plint ny = parameters.getNy();
     const plint nz = parameters.getNz();
-    const T maxT = 10000;//6.6e4; //(T)0.01;
-    plint iSave  = 100;//2000;//10;
+    const T maxT = 2000;//6.6e4; //(T)0.01;
+    plint iSave  = 20;//2000;//10;
     plint iCheck = 1000*iSave;
     // plint periT = 40000;
     writeLogFile(parameters, "3D square Poiseuille");
+    
+    // inlet and outlet boxes
     Box3D inlet    = Box3D(1,    nx-2, 1,    ny-2, 0,   0);
-    Box3D outlet    = Box3D(1,    nx-2, 1,    ny-2, nz-1,   nz-1);
-    plint r = 20; // edit this radius!!!!!!!!!!!!!
-    Array<T,3> center(20, 20, 1);
+    Box3D outlet   = Box3D(1,    nx-2, 1,    ny-2, nz-1,   nz-1);
+
+    // radii for the inlet and outlet holes
+    plint r_inlet = 8; // edit this radius!!!!!!!!!!!!!
+    plint r_smaller_outlet = 3;
+    plint r_larger_outlet = 5;
+    // vector of multiple radii
+    std::vector<plint> outlet_rs = {r_smaller_outlet, r_larger_outlet};
+    
+    // centers for the inlet and outlet holes
+    Array<T,3> center_inlet(21, 31, 2);
+    Array<T,3> center_smaller_outlet(42.5, 17.5, 2);
+    Array<T,3> center_larger_outlet(11, 13.5, 2);
+    
+    // vector of multiple outlet centers
+    std::vector<Array<T,3>> outlet_centers = {center_smaller_outlet, center_larger_outlet};
+
 
     LammpsWrapper wrapper(argv,global::mpi().getGlobalCommunicator());
     char * inlmp = argv[1];
@@ -511,7 +566,7 @@ int main(int argc, char* argv[]) {
         new DYNAMICS );*/
 
     // Use periodic boundary conditions.
-    lattice.periodicity().toggle(2,true);
+    // lattice.periodicity().toggle(2,true); // 2/9/2024 Nazariy: turning off periodicity in Z direction
 
     OnLatticeBoundaryCondition3D<T,DESCRIPTOR>* boundaryCondition
         = createLocalBoundaryCondition3D<T,DESCRIPTOR>();
@@ -535,13 +590,46 @@ int main(int argc, char* argv[]) {
     iterationCAS = 200; // iterations for collideAndStream in the loop 
     zLength = parameters.getNz(); // because domain.z0 gives local value pass this instead.  
 
+    T targetV = 0.00075;
     // Array<T,3> targetV(0,0,uMax);
-    Array<T,3> targetV(0,0,0.000075);
-    // Array<T,3> inletV=getVelocity(targetV, iT, periT);
-    setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));  
-    setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));
+    // inlet target velocity 
+    Array<T,3> inlet_targetV(0,0,targetV);
+
+    // outlet target velocity
+    // T outlet_scaled_targetV = targetV * (r_inlet*r_inlet)/((r_larger_outlet*r_larger_outlet)+(r_smaller_outlet*r_smaller_outlet));
+    // T larger_outlet_scaled_targetV = outlet_scaled_targetV * (r_smaller_outlet*r_smaller_outlet)/((r_larger_outlet*r_larger_outlet)+(r_smaller_outlet*r_smaller_outlet));
+    // T smaller_outlet_scaled_targetV = outlet_scaled_targetV * (r_larger_outlet*r_larger_outlet)/((r_larger_outlet*r_larger_outlet)+(r_smaller_outlet*r_smaller_outlet));
+    
+    // Array<T,3> small_outlet_targetV(0,0,smaller_outlet_scaled_targetV);
+    // Array<T,3> large_outlet_targetV(0,0,larger_outlet_scaled_targetV);
+
+    Array<T,3> small_outlet_targetV(0,0,targetV); // temp for commit purpose
+    Array<T,3> large_outlet_targetV(0,0,targetV); // temp for commit purpose
+    vector<Array<T,3>> outlet_targetV = {small_outlet_targetV, large_outlet_targetV};
+
+    // setting the boundary conditions for the inlet and outlet holes:
+    setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center_inlet, r_inlet, inlet_targetV));  
+    setBoundaryVelocity(lattice, outlet, MultipleSquarePoiseuilleVelocityHoles<T>(outlet_centers, outlet_rs, outlet_targetV));
+
+
     // createDynamicBoundaryFromDataProcessor(lattice, xc, yc, radius, radiusNorm, 0, zLength); // added by NT 7/18/2022
-    for (plint iT=0;iT<6e3;iT++){
+    plint prelim = 3e3;
+    for (plint iT=0;iT<prelim;iT++){
+        // progressbar
+        plint progress = (plint) (iT * 100.0 / prelim);
+        if(progress % 1 == 0) {
+            int barWidth = 50;
+            std::cout << "[";
+            for (int j = 0; j < barWidth; ++j) {
+                if (j < (barWidth*iT/prelim)) {
+                    std::cout << "=";
+                } else {
+                    std::cout << " ";
+                }
+            }
+            std::cout << "] " << int(progress) << "%" << "\r";
+            std::cout.flush();
+        }
         lattice.collideAndStream();
     }
  //           writeVTK(lattice, parameters, 4e3);
@@ -553,8 +641,8 @@ int main(int argc, char* argv[]) {
             pcout<<"Saving VTK file..."<<endl;
             writeVTK(lattice, parameters, iT);
         }
-        setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));  
-        setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));
+        // setBoundaryVelocity(lattice, inlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));  
+        // setBoundaryVelocity(lattice, outlet, SquarePoiseuilleVelocityHole<T>(center,r,targetV));
         // lammps to calculate force
         wrapper.execCommand("run 1 pre no post no");
         // Clear and spread fluid force
@@ -563,7 +651,7 @@ int main(int argc, char* argv[]) {
         spreadForce3D(lattice,wrapper);
         ////// Lattice Boltzmann iteration step.
         // for(int iteration=0; iteration<iterationCAS; iteration++){
-            lattice.collideAndStream();
+        lattice.collideAndStream();
         // }
         // lattice.collideAndStream();
         ////// Interpolate and update solid position

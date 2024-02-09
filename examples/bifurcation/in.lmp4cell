@@ -25,7 +25,7 @@ boundary 	f f p		# x periodic y fix z periodic
 bond_style    wlc/pow 
 angle_style     rbc
 dihedral_style  bend
-read_data       in.bifurcation_v3
+read_data       in.wall2
 # morse parameters: E=D0[exp(-2a(r-r0))-2exp(-a(r-r0))]
 # D0, a, r0, rc(optional)
 #pair_style morse 3
@@ -87,6 +87,7 @@ timestep	1
 # wall ids above are output from MATLAB script for the wall particles generation (manually outputting the ids for the lowest layer of wall particles to constrain them there) 
 group cell type 1
 group moving_wall type 2
+group wall type 3
 #thermo		100
 #run             10000
 
@@ -97,7 +98,10 @@ reset_timestep 0
 #unfix 1
 #unfix 3
 #timestep 0.02
-fix 1 all fcm 1
+fix 1 all nve 1
+# move the wall particles to the original position in Z direction
+fix 2 all move linear NULL NULL 0
+
 #fix 1 all fcm 1
 # fix 2 wall move linear 0 0 0
 #thermo_modify	temp tbig
@@ -106,7 +110,7 @@ fix 1 all fcm 1
 #thermo		100
 #run             1000000
 # output thermodynamic infor every 100 timesteps
-dump            1 all xyz 100 dump.rbc.xyz
+dump            1 all xyz 20 dump.rbc.xyz
 dump_modify 1 sort id
 # dump           2 all custom 4000 dump.rbc.force id fx fy fz
 # dump           3 all custom 4000 dump.rbc.vel id vx vy vz

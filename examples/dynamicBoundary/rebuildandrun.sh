@@ -1,14 +1,16 @@
 #!/bin/sh
 
+rm dynamicBoundary.8*
+
 cd tmp
 
-rm -rf * 
+rm vtk* 
 
 cd ..
 
 cd build
 
-make -j20 
+make -j 32 
 
 cd ..
 

@@ -55,12 +55,13 @@ rebuildandrun.sh
 *.app
 examples/bidirectionalSingleCell/out.lmp4cell
 examples/bidirectionalSingleCell/CMakeLists.txt
-setup3.sh
-setup2.sh
-setup.sh
+paraview_setup.sh
+setup.*
 mpiserver.sh
 server.sh
+511server.sh
 examples/bidirectionalSingleCell/in.rbcmolecule
 examples/bidirectionalSingleCell/in.deposit
 
 examples/anchored/checkpoint.dat
+setup.sh
